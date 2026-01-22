@@ -1,0 +1,43 @@
+<UserControl x:Class="TradePro.Views.TopBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="64">
+    <Border Background="#0B0C0D" BorderBrush="#222" BorderThickness="0,0,0,1">
+        <Grid Margin="16" VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Grid.Column="0" Margin="0">
+                <Border Width="36" Height="36" Background="#2ECC71" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="^" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#08120B" FontWeight="Bold" />
+                </Border>
+                <TextBlock Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="10,0">PaperTrade</TextBlock>
+            </StackPanel>
+
+            <!-- Navigation -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Margin="8,0">
+                <Button x:Name="DashboardButton" Content="Dashboard" Click="DashboardButton_Click" Background="#0F1313" Foreground="#2ECC71" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="TradeButton" Content="Trade" Click="TradeButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="PortfolioButton" Content="Portfolio" Click="PortfolioButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="HistoryButton" Content="History" Click="HistoryButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="StatisticsButton" Content="Statistics" Click="StatisticsButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="ProfileButton" Content="Profile" Click="ProfileButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                <Border Background="#0F1313" Padding="8" CornerRadius="8" Margin="0,0,12,0">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Vertical" Margin="0,0,12,0">
+                            <TextBlock Text="Balance" Foreground="#AAAAAA" FontSize="11" HorizontalAlignment="Right" />
+                            <TextBlock x:Name="BalanceTextBlock" Text="$0.00" Foreground="White" FontWeight="Bold" HorizontalAlignment="Right" />
+                        </StackPanel>
+                        <Button x:Name="LogoutButton" Content="?" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Click="LogoutButton_Click" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

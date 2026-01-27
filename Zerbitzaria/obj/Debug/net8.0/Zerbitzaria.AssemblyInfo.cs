@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Zerbitzaria")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+125a727fad74084213315578a0ba28f7746cf514")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+56189ebdb56f078d7c258c3476f9fe94b9473daa")]
 [assembly: System.Reflection.AssemblyProductAttribute("Zerbitzaria")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Zerbitzaria")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

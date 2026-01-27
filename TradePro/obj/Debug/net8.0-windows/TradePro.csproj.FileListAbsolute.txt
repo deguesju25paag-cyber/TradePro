@@ -138,3 +138,12 @@ D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\DashboardView.g.cs
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\MarketDetailView.g.cs
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\TradeView.g.cs
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\DashboardView.baml
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\HistoryView.baml
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\PortfolioView.baml
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\HistoryView.g.cs
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\PortfolioView.g.cs
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\ProfileView.baml
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\StatisticsView.baml
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\ProfileView.g.cs
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\StatisticsView.g.cs
+D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.sourcelink.json

@@ -1,0 +1,20 @@
+<UserControl x:Class="TradePro.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#0E0F10">
+        <StackPanel Margin="24">
+            <TextBlock Text="History" Foreground="White" FontSize="22" FontWeight="Bold" />
+            <TextBlock Text="Historial de operaciones" Foreground="#BDBDBD" Margin="0,6,0,12" />
+
+            <Border Background="#0F1313" CornerRadius="8" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="Recent trades (ejemplo)" Foreground="#BDBDBD" />
+                    <ListBox>
+                        <ListBoxItem>BTCUSD LONG +$1,771,827.25</ListBoxItem>
+                        <ListBoxItem>ETHUSD SHORT -$75.50</ListBoxItem>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

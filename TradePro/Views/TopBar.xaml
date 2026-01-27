@@ -14,7 +14,7 @@
                 <Border Width="36" Height="36" Background="#2ECC71" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock Text="^" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#08120B" FontWeight="Bold" />
                 </Border>
-                <TextBlock Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="10,0">PaperTrade</TextBlock>
+                <TextBlock Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="10,0">TradePro</TextBlock>
             </StackPanel>
 
             <!-- Navigation -->

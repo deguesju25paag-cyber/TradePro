@@ -5,30 +5,39 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TradePro"
         mc:Ignorable="d"
-        Title="TradePro" Background="#222222"
-        WindowState="Maximized" WindowStyle="None" ResizeMode="NoResize">
-
-    <Grid Name="MainGrid">
-        <Border Width="380" Padding="24" CornerRadius="12" Background="#1E1E1E" BorderBrush="#FF8A00" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        Title="TradePro - Login" Height="520" Width="380" Background="#0B0C0D" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Border Background="#0E0F10" CornerRadius="12" Padding="18" BorderBrush="#242424" BorderThickness="1">
             <StackPanel>
-                <TextBlock Text="TradePro" Foreground="White" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Margin="0 0 0 6"/>
-                <TextBlock Text="Inicia sesión" Foreground="#DADADA" FontSize="12" HorizontalAlignment="Center" Margin="0 0 0 18"/>
+                <TextBlock Text="TradePro" FontSize="26" FontWeight="Bold" Foreground="#FF7A00" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                <TextBlock Text="Inicia sesión o regístrate para continuar" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,18" />
 
-                <StackPanel Margin="0 0 0 6">
-                    <TextBlock Text="Usuario" Foreground="White" FontSize="12" Margin="4 0 0 6"/>
-                    <TextBox x:Name="UsernameTextBox" Height="36" Background="#222222" Foreground="White" BorderBrush="#FF8A00" BorderThickness="0,0,0,1" Padding="6" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                    <Button x:Name="LoginTabButton" Content="Login" Click="LoginTabButton_Click" Padding="8,4" Margin="0,0,8,0" Background="#FF7A00" Foreground="Black" BorderBrush="Transparent" />
+                    <Button x:Name="RegisterTabButton" Content="Registro" Click="RegisterTabButton_Click" Padding="8,4" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" />
                 </StackPanel>
 
-                <StackPanel Margin="0 6 0 6">
-                    <TextBlock Text="Contraseña" Foreground="White" FontSize="12" Margin="4 0 0 6"/>
-                    <PasswordBox x:Name="PasswordBoxControl" Height="36" Background="#222222" Foreground="White" BorderBrush="#FF8A00" BorderThickness="0,0,0,1" Padding="6" />
+                <!-- Login Panel -->
+                <StackPanel x:Name="LoginPanel">
+                    <TextBlock Text="Usuario" Foreground="#D0D0D0" />
+                    <TextBox x:Name="LoginUsername" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
+                    <TextBlock Text="Contraseña" Foreground="#D0D0D0" />
+                    <PasswordBox x:Name="LoginPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,18" />
+                    <Button Content="Entrar" Click="LoginButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
                 </StackPanel>
 
-                <Button x:Name="LoginButton" Content="Entrar" Height="44" Background="#FF8A00" Foreground="White" BorderBrush="#FF8A00" Margin="0 12 0 0" Click="LoginButton_Click"/>
+                <!-- Register Panel -->
+                <StackPanel x:Name="RegisterPanel" Visibility="Collapsed">
+                    <TextBlock Text="Usuario" Foreground="#D0D0D0" />
+                    <TextBox x:Name="RegisterUsername" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
+                    <TextBlock Text="Contraseña" Foreground="#D0D0D0" />
+                    <PasswordBox x:Name="RegisterPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
+                    <TextBlock Text="Confirmar contraseña" Foreground="#D0D0D0" />
+                    <PasswordBox x:Name="RegisterConfirmPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,18" />
+                    <Button Content="Registrar" Click="RegisterButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
+                </StackPanel>
 
-                <TextBlock x:Name="ErrorTextBlock" Foreground="#FF6A6A" Visibility="Collapsed" FontSize="12" Margin="0 8 0 0" HorizontalAlignment="Center" TextWrapping="Wrap"/>
-
-                <TextBlock Text="" Height="8"/>
+                <TextBlock x:Name="StatusText" Text="" Foreground="#FF7A00" Margin="0,18,0,0" HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
     </Grid>

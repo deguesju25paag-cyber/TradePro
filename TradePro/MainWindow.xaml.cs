@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using TradePro.Data;
-using TradePro.Models;
 
 namespace TradePro
 {
@@ -12,80 +12,151 @@ namespace TradePro
     /// </summary>
     public partial class MainWindow : Window
     {
+        private static readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        private void ShowStatus(string text)
         {
-            try
-            {
-                var usernameBox = FindName("UsernameTextBox") as TextBox;
-                var passwordBox = FindName("PasswordBoxControl") as PasswordBox;
-                var errorText = FindName("ErrorTextBlock") as TextBlock;
-
-                var username = usernameBox?.Text?.Trim() ?? string.Empty;
-                var password = passwordBox?.Password ?? string.Empty;
-
-                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-                {
-                    ShowError("Introduce usuario y contraseña.");
-                    return;
-                }
-
-                var db = App.DbContext;
-                if (db == null)
-                {
-                    ShowError("Base de datos no inicializada.");
-                    return;
-                }
-
-                var user = db.Users.SingleOrDefault(u => u.Username == username);
-                if (user == null)
-                {
-                    ShowError("Usuario o contraseña incorrectos.");
-                    return;
-                }
-
-                // Verify password
-                bool ok = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-                if (!ok)
-                {
-                    ShowError("Usuario o contraseña incorrectos.");
-                    return;
-                }
-
-                // Success
-                if (errorText != null)
-                    errorText.Visibility = Visibility.Collapsed;
-
-                var welcome = new WelcomeWindow(username, user.Balance);
-                welcome.WindowState = WindowState.Maximized;
-                welcome.WindowStyle = WindowStyle.None;
-                welcome.ResizeMode = ResizeMode.NoResize;
-                welcome.Show();
-
-                this.Close();
-            }
-            catch (Exception ex)
-            {
-                ShowError("Error al iniciar sesión: " + ex.Message);
-                MessageBox.Show(ex.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            StatusText.Text = text;
         }
 
-        private void ShowError(string message)
+        private void LoginTabButton_Click(object sender, RoutedEventArgs e)
         {
-            var errorText = FindName("ErrorTextBlock") as TextBlock;
-            if (errorText == null)
+            LoginPanel.Visibility = Visibility.Visible;
+            RegisterPanel.Visibility = Visibility.Collapsed;
+            LoginTabButton.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#FF7A00");
+            RegisterTabButton.Background = System.Windows.Media.Brushes.Transparent;
+            RegisterTabButton.Foreground = System.Windows.Media.Brushes.LightGray;
+        }
+
+        private void RegisterTabButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoginPanel.Visibility = Visibility.Collapsed;
+            RegisterPanel.Visibility = Visibility.Visible;
+            RegisterTabButton.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#FF7A00");
+            LoginTabButton.Background = System.Windows.Media.Brushes.Transparent;
+            LoginTabButton.Foreground = System.Windows.Media.Brushes.LightGray;
+        }
+
+        private async void LoginButton_Click(object sender, RoutedEventArgs e)
+        {
+            var username = LoginUsername.Text?.Trim();
+            var password = LoginPassword.Password;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show(message, "Login error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ShowStatus("Ingrese usuario y contraseña.");
                 return;
             }
 
-            errorText.Text = message;
-            errorText.Visibility = Visibility.Visible;
+            try
+            {
+                var payload = new { username = username, password = password };
+                var resp = await _http.PostAsJsonAsync("/api/login", payload);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    // try read message
+                    try
+                    {
+                        var err = await resp.Content.ReadFromJsonAsync<ServerError>(_jsonOptions);
+                        ShowStatus(err?.Message ?? "Usuario o contraseña incorrectos.");
+                    }
+                    catch
+                    {
+                        ShowStatus("Usuario o contraseña incorrectos.");
+                    }
+                    return;
+                }
+
+                var result = await resp.Content.ReadFromJsonAsync<LoginResult>(_jsonOptions);
+                if (result == null)
+                {
+                    ShowStatus("Respuesta inválida del servidor.");
+                    return;
+                }
+
+                // Success: open main welcome window with data from server
+                var welcome = new WelcomeWindow(result.Username, result.Balance);
+                welcome.Show();
+                this.Close();
+            }
+            catch (HttpRequestException)
+            {
+                ShowStatus("No se pudo conectar al servidor. Asegúrate de que Zerbitzaria esté en ejecución.");
+            }
+            catch (Exception ex)
+            {
+                ShowStatus("Error: " + ex.Message);
+            }
+        }
+
+        private async void RegisterButton_Click(object sender, RoutedEventArgs e)
+        {
+            var username = RegisterUsername.Text?.Trim();
+            var password = RegisterPassword.Password;
+            var confirm = RegisterConfirmPassword.Password;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
+            {
+                ShowStatus("Complete todos los campos.");
+                return;
+            }
+
+            if (password != confirm)
+            {
+                ShowStatus("Las contraseñas no coinciden.");
+                return;
+            }
+
+            try
+            {
+                var payload = new { username = username, password = password };
+                var resp = await _http.PostAsJsonAsync("/api/register", payload);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    try
+                    {
+                        var err = await resp.Content.ReadFromJsonAsync<ServerError>(_jsonOptions);
+                        ShowStatus(err?.Message ?? "Error en el registro.");
+                    }
+                    catch
+                    {
+                        ShowStatus("Error en el registro.");
+                    }
+                    return;
+                }
+
+                ShowStatus("Registro exitoso. Ahora puede iniciar sesión.");
+
+                // Switch to login tab for convenience
+                LoginTabButton_Click(null, null);
+                LoginUsername.Text = username;
+                LoginPassword.Password = string.Empty;
+            }
+            catch (HttpRequestException)
+            {
+                ShowStatus("No se pudo conectar al servidor. Asegúrate de que Zerbitzaria esté en ejecución.");
+            }
+            catch (Exception ex)
+            {
+                ShowStatus("Error: " + ex.Message);
+            }
+        }
+
+        private class ServerError
+        {
+            public string Message { get; set; } = string.Empty;
+        }
+
+        private class LoginResult
+        {
+            public string Username { get; set; } = string.Empty;
+            public decimal Balance { get; set; }
         }
     }
 }

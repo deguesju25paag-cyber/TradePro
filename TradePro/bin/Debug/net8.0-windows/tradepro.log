@@ -36,3 +36,128 @@
 2026-01-16T12:04:35.0751362Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
 2026-01-16T12:04:35.0761122Z - Ensuring tables exist via DDL
 2026-01-16T12:04:35.1725671Z - Application startup complete
+2026-01-26T08:28:22.3816825Z - Application starting
+2026-01-26T08:28:22.5255811Z - Attempting EF Migrate()
+2026-01-26T08:28:23.3057124Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T08:28:23.3066769Z - Ensuring tables exist via DDL
+2026-01-26T08:28:23.3948593Z - Application startup complete
+2026-01-26T08:43:07.0755506Z - Application starting
+2026-01-26T08:43:07.2063352Z - Attempting EF Migrate()
+2026-01-26T08:43:07.8961384Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T08:43:07.8972408Z - Ensuring tables exist via DDL
+2026-01-26T08:43:07.9970349Z - Application startup complete
+2026-01-26T08:47:31.1370664Z - Application starting
+2026-01-26T08:47:31.2652414Z - Attempting EF Migrate()
+2026-01-26T08:47:31.9608207Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T08:47:31.9621635Z - Ensuring tables exist via DDL
+2026-01-26T08:47:32.0795695Z - Application startup complete
+2026-01-26T08:55:18.5960223Z - Application starting
+2026-01-26T08:55:18.7399276Z - Attempting EF Migrate()
+2026-01-26T08:55:19.4440517Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T08:55:19.4449817Z - Ensuring tables exist via DDL
+2026-01-26T08:55:19.5400482Z - Application startup complete
+2026-01-26T09:09:14.2322119Z - Application starting
+2026-01-26T09:09:14.3577597Z - Attempting EF Migrate()
+2026-01-26T09:09:15.0448608Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:09:15.0458039Z - Ensuring tables exist via DDL
+2026-01-26T09:09:15.1428335Z - Application startup complete
+2026-01-26T09:13:22.2663998Z - Application starting
+2026-01-26T09:13:22.3921000Z - Attempting EF Migrate()
+2026-01-26T09:13:23.0910309Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:13:23.0920757Z - Ensuring tables exist via DDL
+2026-01-26T09:13:23.1950111Z - Application startup complete
+2026-01-26T09:20:31.6846348Z - Application starting
+2026-01-26T09:20:31.8252998Z - Attempting EF Migrate()
+2026-01-26T09:20:32.6003422Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:20:32.6012844Z - Ensuring tables exist via DDL
+2026-01-26T09:20:32.6968173Z - Application startup complete
+2026-01-26T09:25:53.8041369Z - Application starting
+2026-01-26T09:25:53.9277833Z - Attempting EF Migrate()
+2026-01-26T09:25:54.6945456Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:25:54.6955324Z - Ensuring tables exist via DDL
+2026-01-26T09:25:54.7875094Z - Application startup complete
+2026-01-26T09:28:12.6127688Z - Application starting
+2026-01-26T09:28:12.7369445Z - Attempting EF Migrate()
+2026-01-26T09:28:13.5095672Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:28:13.5105641Z - Ensuring tables exist via DDL
+2026-01-26T09:28:13.6033914Z - Application startup complete
+2026-01-26T09:30:43.6161648Z - Application starting
+2026-01-26T09:30:43.7462222Z - Attempting EF Migrate()
+2026-01-26T09:30:44.4824763Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:30:44.4833420Z - Ensuring tables exist via DDL
+2026-01-26T09:30:44.5721026Z - Application startup complete
+2026-01-26T09:32:25.9846372Z - Application starting
+2026-01-26T09:32:26.1099915Z - Attempting EF Migrate()
+2026-01-26T09:32:26.8046550Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:32:26.8060717Z - Ensuring tables exist via DDL
+2026-01-26T09:32:26.9001841Z - Application startup complete
+2026-01-26T09:42:12.7633739Z - Application starting
+2026-01-26T09:42:12.8913006Z - Attempting EF Migrate()
+2026-01-26T09:42:13.5888497Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:42:13.5898094Z - Ensuring tables exist via DDL
+2026-01-26T09:42:13.6877680Z - Application startup complete
+2026-01-26T09:46:55.6626235Z - Application starting
+2026-01-26T09:46:55.7908618Z - Attempting EF Migrate()
+2026-01-26T09:46:56.4860408Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:46:56.4871221Z - Ensuring tables exist via DDL
+2026-01-26T09:46:56.5787138Z - Application startup complete
+2026-01-26T09:47:01.6338523Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:47:02.8803097Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:47:03.6227950Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:47:03.8323937Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:49:11.5495064Z - Application starting
+2026-01-26T09:49:11.7288858Z - Attempting EF Migrate()
+2026-01-26T09:49:12.4190815Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:49:12.4200527Z - Ensuring tables exist via DDL
+2026-01-26T09:49:12.5086432Z - Application startup complete
+2026-01-26T09:49:16.4328550Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:49:19.7858535Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:49:21.8148122Z - Dashboard counts: markets=0, positions=0, trades=0, assets=0
+2026-01-26T09:54:04.8119350Z - Application starting
+2026-01-26T09:54:04.9447557Z - Attempting EF Migrate()
+2026-01-26T09:54:05.5771145Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:54:05.5780357Z - Ensuring tables exist via DDL
+2026-01-26T09:54:05.6858137Z - Application startup complete
+2026-01-26T09:54:11.7597049Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T09:54:13.6191279Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T09:54:15.9652044Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T09:55:30.1480981Z - Application starting
+2026-01-26T09:55:30.2754928Z - Attempting EF Migrate()
+2026-01-26T09:55:31.0085176Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T09:55:31.0094362Z - Ensuring tables exist via DDL
+2026-01-26T09:55:31.0997699Z - Application startup complete
+2026-01-26T09:55:36.4288004Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:03:03.3377737Z - Application starting
+2026-01-26T10:03:03.4679878Z - Attempting EF Migrate()
+2026-01-26T10:03:04.1461021Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T10:03:04.1470281Z - Ensuring tables exist via DDL
+2026-01-26T10:03:04.2372674Z - Application startup complete
+2026-01-26T10:03:09.5386255Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:03:11.4279023Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:03:11.7150309Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:10:13.1102750Z - Application starting
+2026-01-26T10:10:13.2610931Z - Attempting EF Migrate()
+2026-01-26T10:10:13.9563727Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T10:10:13.9574497Z - Ensuring tables exist via DDL
+2026-01-26T10:10:14.0546620Z - Application startup complete
+2026-01-26T10:10:19.2648164Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:13:36.3320580Z - Application starting
+2026-01-26T10:13:36.5046280Z - Attempting EF Migrate()
+2026-01-26T10:13:37.2424239Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T10:13:37.2433325Z - Ensuring tables exist via DDL
+2026-01-26T10:13:37.3361410Z - Application startup complete
+2026-01-26T10:13:42.8554715Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:16:52.1672418Z - Application starting
+2026-01-26T10:16:52.3107209Z - Attempting EF Migrate()
+2026-01-26T10:16:53.0522505Z - EF Migrate failed: There is no entity type mapped to the table 'Users' which is used in a data operation. Either add the corresponding entity type to the model, or specify the column types in the data operation.
+2026-01-26T10:16:53.0532732Z - Ensuring tables exist via DDL
+2026-01-26T10:16:53.1504534Z - Application startup complete
+2026-01-26T10:16:57.3741771Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:16:59.3248709Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:16:59.4988558Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-26T10:16:59.6665985Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-27T09:19:25.4497687Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-27T09:19:31.8734453Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-27T09:24:44.6632435Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-27T09:25:20.2632468Z - Dashboard populate: markets=4, positions=1, trades=1
+2026-01-27T09:28:36.8070411Z - Dashboard populate: markets=4, positions=1, trades=1

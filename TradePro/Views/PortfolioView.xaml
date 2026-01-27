@@ -1,0 +1,50 @@
+<UserControl x:Class="TradePro.Views.PortfolioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#0E0F10">
+        <StackPanel Margin="24">
+            <TextBlock Text="Portfolio" Foreground="White" FontSize="22" FontWeight="Bold" />
+            <TextBlock Text="Resumen de posiciones y balances por activo" Foreground="#BDBDBD" Margin="0,6,0,12" />
+
+            <Border Background="#0F1313" CornerRadius="8" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="Posiciones abiertas (ejemplo hardcode)" Foreground="#BDBDBD" FontWeight="SemiBold" />
+                    <StackPanel Margin="0,8,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Activo" Foreground="#AAAAAA" />
+                            <TextBlock Text="Cantidad" Grid.Column="1" Foreground="#AAAAAA" HorizontalAlignment="Right" />
+                            <TextBlock Text="Valor" Grid.Column="2" Foreground="#AAAAAA" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="BTCUSD" Foreground="White" />
+                            <TextBlock Text="0.012" Grid.Column="1" Foreground="#BDBDBD" HorizontalAlignment="Right" />
+                            <TextBlock Text="$505.48" Grid.Column="2" Foreground="#BDBDBD" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="ETHUSD" Foreground="White" />
+                            <TextBlock Text="0.20" Grid.Column="1" Foreground="#BDBDBD" HorizontalAlignment="Right" />
+                            <TextBlock Text="$642.02" Grid.Column="2" Foreground="#BDBDBD" HorizontalAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

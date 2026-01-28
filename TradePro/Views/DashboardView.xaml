@@ -2,158 +2,63 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:TradePro.Views">
-    <Grid Background="#0E0F10">
+    <Grid Background="#0E0F10" Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /> <!-- Welcome -->
+            <RowDefinition Height="Auto" /> <!-- Balance + Assets -->
+            <RowDefinition Height="*" />    <!-- Positions -->
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Vertical" Margin="28" Grid.Row="0">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Left">
-                    <TextBlock x:Name="WelcomeText" Text="Bienvenido" Foreground="White" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock x:Name="DebugInfoText" Text="" Foreground="#AAAAAA" FontSize="12" Margin="0,4,0,0" />
-                </StackPanel>
+        <!-- 1) Welcome -->
+        <Border Grid.Row="0" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,12">
+            <StackPanel Orientation="Vertical">
+                <TextBlock x:Name="WelcomeText" Text="Bienvenido" Foreground="White" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock Text="Panel de control" Foreground="#BDBDBD" FontSize="12" Margin="0,6,0,0" />
+                <TextBlock x:Name="DashboardStatusText" Text="" Foreground="#FF7A00" FontSize="12" Margin="0,6,0,0" Visibility="Collapsed" />
+            </StackPanel>
+        </Border>
 
-                <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <TextBlock Text="Saldo" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Right" />
-                    <TextBlock x:Name="UserBalanceText" Text="$0.00" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Right" />
-                </StackPanel>
-            </DockPanel>
-
-            <TextBlock Text="Resumen de cuenta y mercados en tiempo real" Foreground="#BDBDBD" Margin="0,6,0,0" />
-
-            <UniformGrid Columns="4" Rows="1" Margin="0,12,0,0">
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="18" Margin="6">
-                    <StackPanel>
-                        <TextBlock Text="Total Equity" Foreground="#BDBDBD" FontSize="12" />
-                        <TextBlock x:Name="TotalEquityText" Text="$0.00" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="18" Margin="6">
-                    <StackPanel>
-                        <TextBlock Text="Available" Foreground="#BDBDBD" FontSize="12" />
-                        <TextBlock x:Name="AvailableText" Text="$0.00" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="18" Margin="6">
-                    <StackPanel>
-                        <TextBlock Text="Unrealized P&amp;L" Foreground="#BDBDBD" FontSize="12" />
-                        <TextBlock x:Name="UnrealizedText" Text="$0.00" Foreground="#2ECC71" FontSize="18" FontWeight="Bold" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="18" Margin="6">
-                    <StackPanel>
-                        <TextBlock Text="Realized P&amp;L" Foreground="#BDBDBD" FontSize="12" />
-                        <TextBlock x:Name="RealizedText" Text="$0.00" Foreground="#2ECC71" FontSize="18" FontWeight="Bold" Margin="0,8,0,0" />
-                    </StackPanel>
-                </Border>
-            </UniformGrid>
-        </StackPanel>
-
-        <Grid Grid.Row="1" Margin="28">
+        <!-- 2) Balance + Assets -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*" />
                 <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="3*" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="Mercados" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
-                <Grid>
-                    <ItemsControl x:Name="MarketsItemsControl">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-
-                    <!-- Fallback when no markets -->
-                    <TextBlock Text="No hay mercados disponibles" Foreground="#AAAAAA" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=MarketsItemsControl, Path=Items.Count}" Value="0">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Grid>
-
-                <TextBlock Text="Posiciones abiertas" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,8" />
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="8" Padding="12">
-                    <Grid>
-                        <StackPanel x:Name="PositionsStack" />
-
-                        <TextBlock Text="No hay posiciones" Foreground="#AAAAAA" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=PositionsStack, Path=Children.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                </Border>
-
-                <TextBlock Text="Operaciones recientes" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,8" />
-                <Border Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="8" Padding="12">
-                    <Grid>
-                        <StackPanel x:Name="RecentTradesStack" />
-
-                        <TextBlock Text="No hay operaciones" Foreground="#AAAAAA" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=RecentTradesStack, Path=Children.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                </Border>
-            </StackPanel>
-
-            <Border Grid.Column="1" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="12" Margin="12,0,0,0">
+            <!-- Balance box -->
+            <Border Grid.Column="0" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,12,0">
                 <StackPanel>
-                    <TextBlock Text="Activos" Foreground="#BDBDBD" FontSize="13" />
-                    <Grid>
-                        <ListBox x:Name="AssetsListBox" Background="Transparent" BorderThickness="0" Foreground="White" Margin="0,8,0,0" />
+                    <TextBlock Text="Saldo disponible" Foreground="#BDBDBD" FontSize="12" />
+                    <TextBlock x:Name="UserBalanceText" Text="$0.00" Foreground="White" FontSize="26" FontWeight="Bold" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
 
-                        <TextBlock Text="No hay activos" Foreground="#AAAAAA" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=AssetsListBox, Path=Items.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-
-                    <Separator Margin="0,12,0,12" />
-
-                    <TextBlock Text="Resumen rapido" Foreground="#BDBDBD" FontSize="13" />
-                    <StackPanel Margin="0,8,0,0">
-                        <TextBlock x:Name="SummaryPositionsText" Text="Posiciones: 0" Foreground="#BDBDBD" />
-                        <TextBlock x:Name="SummaryTradesText" Text="Operaciones: 0" Foreground="#BDBDBD" />
-                        <TextBlock x:Name="SummaryAvailableText" Text="Saldo disponible: $0.00" Foreground="#BDBDBD" />
-                    </StackPanel>
+            <!-- Assets grid (two rows) -->
+            <Border Grid.Column="1" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="Activos" Foreground="White" FontSize="14" FontWeight="SemiBold" />
+                    <UniformGrid x:Name="AssetsGrid" Rows="2" Columns="3" Margin="0,12,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <!-- Items populated from code-behind via WelcomeWindow.PopulateDashboard (creates simple UIElements) -->
+                    </UniformGrid>
+                    <TextBlock x:Name="AssetsHint" Text="Mostrando activos principales" Foreground="#AAAAAA" FontSize="11" Margin="0,10,0,0" />
                 </StackPanel>
             </Border>
         </Grid>
+
+        <!-- 3) Positions list -->
+        <Border Grid.Row="2" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="12">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock Text="Posiciones abiertas" Foreground="White" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left" />
+                    <TextBlock x:Name="OpenPositionsCountText" Text="Posiciones: 0" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+                </DockPanel>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                    <StackPanel x:Name="PositionsStack" />
+                </ScrollViewer>
+
+                <TextBlock x:Name="PositionsEmptyText" Text="No hay posiciones abiertas" Foreground="#AAAAAA" FontSize="12" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,12,0,0" />
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

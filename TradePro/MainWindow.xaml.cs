@@ -81,7 +81,7 @@ namespace TradePro
                 }
 
                 // Success: open main welcome window with data from server
-                var welcome = new WelcomeWindow(result.Username, result.Balance);
+                var welcome = new WelcomeWindow(result.Username, result.Balance, result.UserId);
                 welcome.Show();
                 this.Close();
             }
@@ -157,6 +157,7 @@ namespace TradePro
         {
             public string Username { get; set; } = string.Empty;
             public decimal Balance { get; set; }
+            public int UserId { get; set; }
         }
     }
 }

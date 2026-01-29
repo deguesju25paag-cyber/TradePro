@@ -49,13 +49,13 @@ namespace TradePro
 
             // Ensure the view is loaded before populating
             RoutedEventHandler? handler = null;
-            handler = (s, e) =>
+            handler = async (s, e) =>
             {
                 if (_dashboardView != null)
                 {
                     _dashboardView.Loaded -= handler;
-                    // populate from local DB (synchronous, quick)
-                    _dashboardView.PopulateFromLocal(_currentUserId, username);
+                    // populate from API (async)
+                    await _dashboardView.PopulateFromApiAsync(_currentUserId, username);
                 }
             };
 
@@ -64,7 +64,7 @@ namespace TradePro
                 // If already loaded, call directly; otherwise attach handler
                 if (_dashboardView.IsLoaded)
                 {
-                    _dashboardView.PopulateFromLocal(_currentUserId, username);
+                    _ = _dashboardView.PopulateFromApiAsync(_currentUserId, username);
                 }
                 else
                 {

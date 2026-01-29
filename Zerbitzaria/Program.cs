@@ -11,6 +11,10 @@ builder.WebHost.UseUrls("http://localhost:5000");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=zerbitzaria.db"));
 builder.Services.AddEndpointsApiExplorer();
 
+// Add HttpClient factory and background price updater service
+builder.Services.AddHttpClient();
+builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
+
 var app = builder.Build();
 
 // Ensure DB: try migrations, fallback to EnsureCreated
@@ -134,11 +138,60 @@ app.MapPost("/api/register", async (ApplicationDbContext db, UserDto dto) =>
     return Results.Ok(new { message = "Registrado" });
 });
 
-// Get markets
-app.MapGet("/api/markets", async (ApplicationDbContext db) =>
+// Get markets - resilient: try DB, on DB error fallback to CoinGecko live prices
+app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory httpFactory) =>
 {
-    var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
-    return Results.Ok(markets);
+    try
+    {
+        var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
+        return Results.Ok(markets);
+    }
+    catch (Microsoft.Data.Sqlite.SqliteException sqliteEx)
+    {
+        Console.WriteLine("DB read error for /api/markets: " + sqliteEx.Message);
+        try
+        {
+            var client = httpFactory.CreateClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
+            var ids = "bitcoin,ethereum,solana,ripple,dogecoin,cardano";
+            var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+            var resp = await client.GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return Results.StatusCode(502);
+
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+            var list = new List<object>();
+            // build minimal Market-like objects
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["bitcoin"] = "BTC",
+                ["ethereum"] = "ETH",
+                ["solana"] = "SOL",
+                ["ripple"] = "XRP",
+                ["dogecoin"] = "DOGE",
+                ["cardano"] = "ADA"
+            };
+
+            foreach (var kv in map)
+            {
+                if (!doc.RootElement.TryGetProperty(kv.Key, out var el)) continue;
+                decimal price = 0m;
+                double change = 0;
+                if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
+                if (el.TryGetProperty("usd_24h_change", out var cEl)) change = cEl.GetDouble();
+
+                list.Add(new { Symbol = kv.Value, Price = price, Change = change, IsUp = change >= 0 });
+            }
+
+            return Results.Ok(list);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("CoinGecko fallback failed: " + ex.Message);
+            return Results.StatusCode(500);
+        }
+    }
 });
 
 // Get positions for a user

@@ -147,3 +147,6 @@ D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\StatisticsView.baml
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\ProfileView.g.cs
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\Views\StatisticsView.g.cs
 D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.sourcelink.json
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\OxyPlot.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\OxyPlot.Wpf.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\OxyPlot.Wpf.Shared.dll

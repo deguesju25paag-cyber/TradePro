@@ -1,17 +1,49 @@
 <UserControl x:Class="TradePro.Views.MarketDetailView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:oxy="http://oxyplot.org/wpf">
     <Grid Background="#0E0F10">
         <StackPanel Margin="20">
             <TextBlock x:Name="SymbolText" Text="SYMBOL" Foreground="White" FontSize="20" FontWeight="Bold" />
-            <TextBlock x:Name="PriceText" Text="$0.00" Foreground="#BDBDBD" Margin="0,6,0,0" />
+            <TextBlock x:Name="PriceText" Text="$0.00" Foreground="#BDBDBD" Margin="0,6,0,0" FontSize="18" FontWeight="SemiBold" />
 
             <Border Background="#0F1313" CornerRadius="8" Padding="12" Margin="0,12,0,0">
-                <TextBlock Text="Chart placeholder" Foreground="#BDBDBD" />
+                <!-- Chart area with timeframe buttons -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,8">
+                        <Button x:Name="Btn1H" Content="1H" Width="44" Margin="0,0,6,0" Click="Btn1H_Click" />
+                        <Button x:Name="Btn4H" Content="4H" Width="44" Margin="0,0,6,0" Click="Btn4H_Click" />
+                        <Button x:Name="Btn1D" Content="1D" Width="44" Margin="0,0,6,0" Click="Btn1D_Click" />
+                    </StackPanel>
+                    <oxy:PlotView x:Name="ChartPlotView" Height="360" Background="#121213" Margin="0,6,0,0" />
+                </StackPanel>
             </Border>
 
             <Border Background="#0F1313" CornerRadius="8" Padding="12" Margin="0,12,0,0">
-                <TextBlock Text="Order panel placeholder" Foreground="#BDBDBD" />
+                <!-- Order panel -->
+                <StackPanel Orientation="Vertical" Margin="0">
+                    <TextBlock Text="Operar" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Side:" Foreground="#BDBDBD" VerticalAlignment="Center" Width="60" />
+                        <ComboBox x:Name="SideCombo" Width="120" SelectedIndex="0">
+                            <ComboBoxItem Content="LONG" />
+                            <ComboBoxItem Content="SHORT" />
+                        </ComboBox>
+
+                        <TextBlock Text="Leverage:" Foreground="#BDBDBD" VerticalAlignment="Center" Margin="12,0,0,0" Width="80" />
+                        <TextBox x:Name="LeverageBox" Width="60" Text="1" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Cantidad ($):" Foreground="#BDBDBD" VerticalAlignment="Center" Width="100" />
+                        <TextBox x:Name="AmountBox" Width="120" Text="100" />
+                    </StackPanel>
+
+                    <Button x:Name="OpenButton" Content="Abrir posicion" Width="160" Height="32" Margin="0,12,0,0" Click="OpenButton_Click" />
+
+                    <TextBlock x:Name="OrderStatusText" Text="" Foreground="#FF7A00" Margin="0,8,0,0" />
+                </StackPanel>
             </Border>
         </StackPanel>
     </Grid>

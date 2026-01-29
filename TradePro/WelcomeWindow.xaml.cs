@@ -78,26 +78,8 @@ namespace TradePro
             var md = new MarketDetailView();
             MainContent.Content = md;
 
-            // populate details from local DB if available
-            var db = App.DbContext;
-            if (db == null) return;
-
-            var m = db.Markets.SingleOrDefault(x => x.Symbol == symbol || (x.Symbol + "USD" == symbol));
-            // fallback: try match by symbol start
-            if (m == null) m = db.Markets.FirstOrDefault(x => !string.IsNullOrEmpty(symbol) && symbol.StartsWith(x.Symbol));
-
-            var sym = md.FindName("SymbolText") as TextBlock;
-            var price = md.FindName("PriceText") as TextBlock;
-            if (m != null)
-            {
-                if (sym != null) sym.Text = m.Symbol;
-                if (price != null) price.Text = m.Price.ToString("C");
-            }
-            else
-            {
-                if (sym != null) sym.Text = symbol ?? "";
-                if (price != null) price.Text = "N/A";
-            }
+            // populate details from local DB if available (MarketDetailView will try server)
+            _ = md.LoadSymbolAsync(symbol);
         }
 
         // Minimal, deterministic dashboard population: show defaults/sample data so the UI is never empty

@@ -73,6 +73,7 @@ namespace TradePro.Views
             decimal balance = 100000m;
             List<Market> markets = new();
             List<Position> positions = new();
+            bool marketsFromLiveSource = false;
 
             // Try get markets from server API
             try
@@ -85,6 +86,7 @@ namespace TradePro.Views
                     if (list != null && list.Count > 0)
                     {
                         markets = list;
+                        marketsFromLiveSource = true; // server provided values (likely live)
                     }
                 }
             }
@@ -93,8 +95,8 @@ namespace TradePro.Views
                 // ignore network errors and fallback to other sources
             }
 
-            // If server didn't provide markets, fallback to local DB
-            if (markets == null || markets.Count == 0)
+            // If server didn't provide markets, fallback to local DB (symbols only)
+            if ((markets == null || markets.Count == 0))
             {
                 try
                 {
@@ -104,7 +106,9 @@ namespace TradePro.Views
                         var dbMarkets = db.Markets.OrderBy(m => m.Symbol).ToList();
                         if (dbMarkets != null && dbMarkets.Count > 0)
                         {
-                            markets = dbMarkets;
+                            // Use symbols from DB but mark as not live: display placeholders until live prices fetched
+                            markets = dbMarkets.Select(m => new Market { Symbol = m.Symbol, Price = 0m, Change = 0, IsUp = false }).ToList();
+                            marketsFromLiveSource = false;
                         }
 
                         // resolve user for balance and positions
@@ -132,7 +136,7 @@ namespace TradePro.Views
             }
 
             // If still no markets, try CoinGecko directly
-            if (markets == null || markets.Count == 0)
+            if ((markets == null || markets.Count == 0))
             {
                 try
                 {
@@ -154,7 +158,11 @@ namespace TradePro.Views
                             list.Add(new Market(sym, price, change, change >= 0));
                         }
 
-                        if (list.Count > 0) markets = list;
+                        if (list.Count > 0)
+                        {
+                            markets = list;
+                            marketsFromLiveSource = true; // live source
+                        }
                     }
                 }
                 catch
@@ -219,14 +227,15 @@ namespace TradePro.Views
                     };
                     var priceTb = new TextBlock
                     {
-                        Text = m.Price.ToString("C"),
+                        // always show placeholder until live price fetched
+                        Text = "—",
                         Foreground = Brushes.LightGray,
                         FontSize = 14
                     };
                     var changeTb = new TextBlock
                     {
-                        Text = (m.Change >= 0 ? "+" : "") + m.Change.ToString("0.##") + "%",
-                        Foreground = m.Change >= 0 ? Brushes.LightGreen : Brushes.IndianRed,
+                        Text = string.Empty,
+                        Foreground = Brushes.LightGray,
                         FontWeight = FontWeights.Bold,
                         Margin = new Thickness(0, 6, 0, 0)
                     };
@@ -269,6 +278,29 @@ namespace TradePro.Views
             {
                 dashboardStatus.Text = string.Empty;
                 dashboardStatus.Visibility = Visibility.Collapsed;
+            }
+
+            // If markets were not live, request live prices immediately and show status while fetching
+            if (!marketsFromLiveSource)
+            {
+                if (dashboardStatus != null)
+                {
+                    dashboardStatus.Text = "Obteniendo precios en vivo...";
+                    dashboardStatus.Visibility = Visibility.Visible;
+                }
+
+                var ok = await UpdatePricesFromCoinGeckoAsync();
+                if (dashboardStatus != null)
+                {
+                    dashboardStatus.Visibility = Visibility.Collapsed;
+                }
+
+                // if failed, keep placeholders and show message
+                if (!ok && dashboardStatus != null)
+                {
+                    dashboardStatus.Text = "No se pudieron obtener precios en vivo.";
+                    dashboardStatus.Visibility = Visibility.Visible;
+                }
             }
 
             // start updates every 15 seconds by default
@@ -343,24 +375,11 @@ namespace TradePro.Views
                 var resp = await _http.GetAsync("/api/markets");
                 if (!resp.IsSuccessStatusCode) return;
 
-                var stream = await resp.Content.ReadAsStreamAsync();
-                var list = await JsonSerializer.DeserializeAsync<List<Market>>(stream, _json_options);
-                if (list == null) return;
-
-                // update UI for known cards
-                foreach (var m in list)
-                {
-                    if (_cardMap.TryGetValue(m.Symbol, out var tbs))
-                    {
-                        var (priceTb, changeTb) = tbs;
-                        priceTb.Dispatcher.Invoke(() => priceTb.Text = m.Price.ToString("C"));
-                        changeTb.Dispatcher.Invoke(() =>
-                        {
-                            changeTb.Text = (m.Change >= 0 ? "+" : "") + m.Change.ToString("0.##") + "%";
-                            changeTb.Foreground = m.Change >= 0 ? Brushes.LightGreen : Brushes.IndianRed;
-                        });
-                    }
-                }
+                // We intentionally do not apply server DB prices to the UI directly
+                // to avoid showing seeded/static values. We will always update prices
+                // from CoinGecko (live) via UpdatePricesFromCoinGeckoAsync.
+                // Optionally we could refresh the symbol list here, but current UI
+                // is rebuilt when DashboardView is recreated.
             }
             catch
             {
@@ -372,12 +391,12 @@ namespace TradePro.Views
         }
 
         // Update market prices using CoinGecko API
-        private async Task UpdatePricesFromCoinGeckoAsync()
+        private async Task<bool> UpdatePricesFromCoinGeckoAsync()
         {
-            if (_cardMap.Count == 0) return;
+            if (_cardMap.Count == 0) return false;
 
             var ids = string.Join(",", _cardMap.Keys.Select(s => _symbolToId.GetValueOrDefault(s, "")).Where(x => !string.IsNullOrEmpty(x)));
-            if (string.IsNullOrEmpty(ids)) return;
+            if (string.IsNullOrEmpty(ids)) return false;
 
             try
             {
@@ -396,7 +415,7 @@ namespace TradePro.Views
                         }
                     }
 
-                    return;
+                    return false;
                 }
 
                 // success -> reset backoff and ensure base interval
@@ -428,10 +447,13 @@ namespace TradePro.Views
                         });
                     }
                 }
+
+                return true;
             }
             catch
             {
                 // ignore errors (rate limits etc.)
+                return false;
             }
         }
     }

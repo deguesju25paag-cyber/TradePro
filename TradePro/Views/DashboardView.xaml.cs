@@ -23,6 +23,25 @@ namespace TradePro.Views
         private static readonly JsonSerializerOptions _json_options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         private static readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
 
+        // CoinGecko client and mapping
+        private static readonly HttpClient _cg = new HttpClient();
+        private static readonly Dictionary<string, string> _symbolToId = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BTC"] = "bitcoin",
+            ["ETH"] = "ethereum",
+            ["SOL"] = "solana",
+            ["XRP"] = "ripple",
+            ["DOGE"] = "dogecoin",
+            ["ADA"] = "cardano"
+        };
+
+        private int _backoffSeconds = 0; // dynamic backoff when rate limited
+
+        static DashboardView()
+        {
+            try { _cg.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProClient/1.0"); } catch { }
+        }
+
         public DashboardView()
         {
             InitializeComponent();
@@ -34,7 +53,7 @@ namespace TradePro.Views
             StopRealtimeUpdates();
         }
 
-        // Populate dashboard by fetching markets from the server API. Starts a 5s refresh timer.
+        // Populate dashboard by fetching markets from the server API. Starts a 15s refresh timer only if we have data.
         public async Task PopulateFromApiAsync(int? userId = null, string? username = null)
         {
             // Find controls
@@ -71,7 +90,7 @@ namespace TradePro.Views
             }
             catch
             {
-                // ignore network errors and fallback to local DB below
+                // ignore network errors and fallback to other sources
             }
 
             // If server didn't provide markets, fallback to local DB
@@ -82,7 +101,11 @@ namespace TradePro.Views
                     var db = TradePro.App.DbContext;
                     if (db != null)
                     {
-                        markets = db.Markets.OrderBy(m => m.Symbol).ToList();
+                        var dbMarkets = db.Markets.OrderBy(m => m.Symbol).ToList();
+                        if (dbMarkets != null && dbMarkets.Count > 0)
+                        {
+                            markets = dbMarkets;
+                        }
 
                         // resolve user for balance and positions
                         Models.User? user = null;
@@ -108,18 +131,61 @@ namespace TradePro.Views
                 }
             }
 
-            // Final fallback defaults
+            // If still no markets, try CoinGecko directly
             if (markets == null || markets.Count == 0)
             {
-                markets = new List<Market>
+                try
                 {
-                    new Market("BTC", 42123.45m, 2.1, true),
-                    new Market("ETH", 3210.12m, 1.8, true),
-                    new Market("SOL", 98.45m, -0.5, false),
-                    new Market("XRP", 0.78m, 0.9, true),
-                    new Market("DOGE", 0.07m, 5.2, true),
-                    new Market("ADA", 0.95m, -1.1, false)
-                };
+                    var ids = string.Join(",", _symbolToId.Values.Distinct());
+                    var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+                    using var resp = await _cg.GetAsync(url);
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        using var stream = await resp.Content.ReadAsStreamAsync();
+                        using var doc = await JsonDocument.ParseAsync(stream);
+                        var list = new List<Market>();
+                        foreach (var kv in _symbolToId)
+                        {
+                            var sym = kv.Key; var id = kv.Value;
+                            if (!doc.RootElement.TryGetProperty(id, out var el)) continue;
+                            decimal price = 0m; double change = 0;
+                            if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
+                            if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
+                            list.Add(new Market(sym, price, change, change >= 0));
+                        }
+
+                        if (list.Count > 0) markets = list;
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            // If still no markets, show status and don't render fake data
+            if (markets == null || markets.Count == 0)
+            {
+                if (dashboardStatus != null)
+                {
+                    dashboardStatus.Text = "No se han podido obtener precios. Intente más tarde.";
+                    dashboardStatus.Visibility = Visibility.Visible;
+                }
+
+                // clear assets area
+                assetsGrid?.Dispatcher.Invoke(() => assetsGrid.Children.Clear());
+
+                // update balance and positions UI (positions may be empty)
+                if (userBalText != null) userBalText.Text = balance.ToString("C");
+                if (positionsStack != null && openCountText != null && positionsEmpty != null)
+                {
+                    positionsStack.Children.Clear();
+                    openCountText.Text = $"Posiciones: {positions.Count}";
+                    positionsEmpty.Visibility = Visibility.Visible;
+                }
+
+                // do not start timer when we have no cards to update
+                return;
             }
 
             // Update balance UI
@@ -205,8 +271,8 @@ namespace TradePro.Views
                 dashboardStatus.Visibility = Visibility.Collapsed;
             }
 
-            // start updates every 5 seconds
-            StartRealtimeUpdates(TimeSpan.FromSeconds(5));
+            // start updates every 15 seconds by default
+            StartRealtimeUpdates(TimeSpan.FromSeconds(15));
         }
 
         private UIElement CreatePositionElement(Position p, List<Market> markets)
@@ -247,6 +313,8 @@ namespace TradePro.Views
                 try
                 {
                     await RefreshMarketsFromServerAsync();
+                    // Always try CoinGecko after server refresh; handle 429 inside
+                    await UpdatePricesFromCoinGeckoAsync();
                 }
                 catch
                 {
@@ -297,6 +365,73 @@ namespace TradePro.Views
             catch
             {
                 // ignore
+            }
+
+            // Update prices from CoinGecko
+            await UpdatePricesFromCoinGeckoAsync();
+        }
+
+        // Update market prices using CoinGecko API
+        private async Task UpdatePricesFromCoinGeckoAsync()
+        {
+            if (_cardMap.Count == 0) return;
+
+            var ids = string.Join(",", _cardMap.Keys.Select(s => _symbolToId.GetValueOrDefault(s, "")).Where(x => !string.IsNullOrEmpty(x)));
+            if (string.IsNullOrEmpty(ids)) return;
+
+            try
+            {
+                var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+                using var resp = await _cg.GetAsync(url);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        // increase backoff
+                        _backoffSeconds = _backoffSeconds == 0 ? 30 : Math.Min(120, _backoffSeconds * 2);
+                        // apply backoff by adjusting timer interval
+                        if (_updateTimer != null)
+                        {
+                            _updateTimer.Interval = TimeSpan.FromSeconds(_backoffSeconds);
+                        }
+                    }
+
+                    return;
+                }
+
+                // success -> reset backoff and ensure base interval
+                _backoffSeconds = 0;
+                if (_updateTimer != null) _updateTimer.Interval = TimeSpan.FromSeconds(15);
+
+                using var stream = await resp.Content.ReadAsStreamAsync();
+                using var doc = await JsonDocument.ParseAsync(stream);
+
+                foreach (var idProp in doc.RootElement.EnumerateObject())
+                {
+                    var id = idProp.Name; // e.g. "bitcoin"
+                    var el = idProp.Value;
+
+                    decimal price = 0m;
+                    double change = 0;
+                    if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
+                    if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
+
+                    var symbol = _cardMap.Keys.FirstOrDefault(k => _symbolToId.GetValueOrDefault(k, "") == id);
+                    if (symbol != null && _cardMap.TryGetValue(symbol, out var tbs))
+                    {
+                        var (priceTb, changeTb) = tbs;
+                        priceTb.Dispatcher.Invoke(() => priceTb.Text = price.ToString("C"));
+                        changeTb.Dispatcher.Invoke(() =>
+                        {
+                            changeTb.Text = (change >= 0 ? "+" : "") + change.ToString("0.##") + "%";
+                            changeTb.Foreground = change >= 0 ? Brushes.LightGreen : Brushes.IndianRed;
+                        });
+                    }
+                }
+            }
+            catch
+            {
+                // ignore errors (rate limits etc.)
             }
         }
     }

@@ -35,10 +35,13 @@ namespace Zerbitzaria.Services
             {
                 if (!client.DefaultRequestHeaders.UserAgent.Any())
                 {
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("TradePro/1.0");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
                 }
             }
             catch { }
+
+            // Start with a conservative poll interval to avoid hitting rate limits
+            var pollInterval = TimeSpan.FromSeconds(15);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -50,11 +53,19 @@ namespace Zerbitzaria.Services
                     var resp = await client.GetAsync(url, stoppingToken);
                     if (!resp.IsSuccessStatusCode)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                        // If rate limited, increase backoff
+                        if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                        {
+                            Console.WriteLine("PriceUpdater: CoinGecko rate limited (429). Backing off.");
+                            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                            continue;
+                        }
+
+                        await Task.Delay(pollInterval, stoppingToken);
                         continue;
                     }
 
-                    var json = await resp.Content.ReadAsStringAsync();
+                    var json = await resp.Content.ReadAsStringAsync(cancellationToken: stoppingToken);
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
 
                     using var scope = _scopeFactory.CreateScope();
@@ -95,14 +106,18 @@ namespace Zerbitzaria.Services
                         await db.SaveChangesAsync(stoppingToken);
                     }
                 }
+                catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // shutting down
+                }
                 catch (Exception ex)
                 {
                     // log to console; don't crash
                     Console.WriteLine("PriceUpdater error: " + ex.Message);
                 }
 
-                // wait a bit; CoinGecko rate limits, use 5s-15s depending on needs
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                // wait before next poll
+                await Task.Delay(pollInterval, stoppingToken);
             }
         }
     }

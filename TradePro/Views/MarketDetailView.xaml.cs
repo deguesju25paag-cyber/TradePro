@@ -109,7 +109,7 @@ namespace TradePro.Views
                 using var stream = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(stream);
 
-                var series = new CandleStickSeries { StrokeThickness = 1, CandleWidth = 0.9 };
+                var series = new CandleStickSeries { StrokeThickness = 1 /* CandleWidth will be set dynamically */ };
 
                 DateTimeAxis xAxis = new DateTimeAxis
                 {
@@ -140,6 +140,9 @@ namespace TradePro.Views
 
                 decimal lastClose = 0m;
 
+                // collect x positions to compute spacing
+                var xList = new System.Collections.Generic.List<double>();
+
                 foreach (var item in doc.RootElement.EnumerateArray())
                 {
                     // kline array: [openTime, open, high, low, close, ...]
@@ -152,8 +155,33 @@ namespace TradePro.Views
 
                     var dt = DateTimeOffset.FromUnixTimeMilliseconds(ts).UtcDateTime;
                     double x = DateTimeAxis.ToDouble(dt);
+                    xList.Add(x);
                     series.Items.Add(new HighLowItem(x, (double)high, (double)low, (double)open, (double)close));
                     lastClose = close;
+                }
+
+                // compute minimum spacing and set candle width as a fraction to avoid overlap
+                if (xList.Count >= 2)
+                {
+                    double minDiff = double.MaxValue;
+                    for (int i = 1; i < xList.Count; i++)
+                    {
+                        var diff = xList[i] - xList[i - 1];
+                        if (diff > 0 && diff < minDiff) minDiff = diff;
+                    }
+                    if (minDiff != double.MaxValue && minDiff > 0)
+                    {
+                        // Use 70% of spacing for candle width
+                        series.CandleWidth = minDiff * 0.7;
+                    }
+                    else
+                    {
+                        series.CandleWidth = 0.9; // fallback
+                    }
+                }
+                else
+                {
+                    series.CandleWidth = 0.9;
                 }
 
                 if (lastClose != 0m)

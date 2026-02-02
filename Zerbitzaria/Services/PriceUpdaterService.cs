@@ -40,8 +40,10 @@ namespace Zerbitzaria.Services
             }
             catch { }
 
-            // Start with a conservative poll interval to avoid hitting rate limits
-            var pollInterval = TimeSpan.FromSeconds(15);
+            // Use a slightly more conservative poll interval to reduce chance of rate limits
+            var basePollInterval = TimeSpan.FromSeconds(30);
+            var pollInterval = basePollInterval;
+            int backoffSeconds = 0;
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -50,20 +52,52 @@ namespace Zerbitzaria.Services
                     // build ids param
                     var ids = string.Join(",", _symbolToId.Values.Distinct());
                     var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
-                    var resp = await client.GetAsync(url, stoppingToken);
+
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    cts.CancelAfter(TimeSpan.FromSeconds(10)); // avoid hanging requests
+
+                    var resp = await client.GetAsync(url, cts.Token);
                     if (!resp.IsSuccessStatusCode)
                     {
-                        // If rate limited, increase backoff
+                        // If rate limited, increase backoff and respect Retry-After header if present
                         if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                         {
-                            Console.WriteLine("PriceUpdater: CoinGecko rate limited (429). Backing off.");
-                            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                            // Try read Retry-After
+                            var retryAfter = resp.Headers.RetryAfter;
+                            if (retryAfter != null)
+                            {
+                                if (retryAfter.Delta.HasValue)
+                                {
+                                    backoffSeconds = (int)retryAfter.Delta.Value.TotalSeconds;
+                                }
+                                else if (retryAfter.Date.HasValue)
+                                {
+                                    var delta = retryAfter.Date.Value - DateTimeOffset.UtcNow;
+                                    backoffSeconds = (int)Math.Max(1, delta.TotalSeconds);
+                                }
+                            }
+
+                            if (backoffSeconds == 0)
+                            {
+                                backoffSeconds = backoffSeconds == 0 ? 30 : Math.Min(600, (backoffSeconds * 2));
+                            }
+
+                            Console.WriteLine($"PriceUpdater: CoinGecko rate limited (429). Backing off {backoffSeconds}s.");
+
+                            try { await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), stoppingToken); } catch (TaskCanceledException) { break; }
+
+                            // continue loop and try again after backoff
                             continue;
                         }
 
-                        await Task.Delay(pollInterval, stoppingToken);
+                        // non-rate-limit error: wait pollInterval then continue
+                        try { await Task.Delay(pollInterval, stoppingToken); } catch (TaskCanceledException) { break; }
                         continue;
                     }
+
+                    // success -> reset backoff
+                    backoffSeconds = 0;
+                    pollInterval = basePollInterval;
 
                     var json = await resp.Content.ReadAsStringAsync(cancellationToken: stoppingToken);
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
@@ -117,7 +151,7 @@ namespace Zerbitzaria.Services
                 }
 
                 // wait before next poll
-                await Task.Delay(pollInterval, stoppingToken);
+                try { await Task.Delay(pollInterval, stoppingToken); } catch (TaskCanceledException) { break; }
             }
         }
     }

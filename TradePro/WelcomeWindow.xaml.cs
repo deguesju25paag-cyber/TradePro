@@ -45,7 +45,7 @@ namespace TradePro
             MainContent.Content = _dashboardView;
 
             // Attach click handler so DashboardView can notify when an asset is clicked
-            _dashboardView.AssetClicked += OpenMarketDetail;
+            _dashboardView.AssetClicked += async (symbol) => await OpenMarketDetail(symbol);
 
             // Ensure the view is loaded before populating
             RoutedEventHandler? handler = null;
@@ -73,13 +73,23 @@ namespace TradePro
             }
         }
 
-        private void OpenMarketDetail(string symbol)
+        private async Task OpenMarketDetail(string symbol)
         {
-            var md = new MarketDetailView();
-            MainContent.Content = md;
+            try
+            {
+                var md = new MarketDetailView();
+                MainContent.Content = md;
 
-            // populate details from local DB if available (MarketDetailView will try server)
-            _ = md.LoadSymbolAsync(symbol);
+                // populate details from local DB if available (MarketDetailView will try server)
+                await md.LoadSymbolAsync(symbol);
+            }
+            catch (Exception ex)
+            {
+                // Show a friendly message instead of crashing
+                MessageBox.Show("No se pudieron cargar los detalles del mercado: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // fallback to dashboard
+                ShowDashboard(_currentUsername);
+            }
         }
 
         // Minimal, deterministic dashboard population: show defaults/sample data so the UI is never empty
@@ -164,7 +174,7 @@ namespace TradePro
 
             var left = new StackPanel { Orientation = Orientation.Vertical };
             left.Children.Add(new TextBlock { Text = p.Symbol, Foreground = System.Windows.Media.Brushes.White, FontWeight = FontWeights.SemiBold });
-            left.Children.Add(new TextBlock { Text = $"{p.Side} • {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"{p.Side} x {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
 
             decimal estimated = 0m;
             var market = markets.FirstOrDefault(m => m.Symbol == p.Symbol || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol)));

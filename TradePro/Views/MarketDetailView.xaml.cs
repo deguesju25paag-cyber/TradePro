@@ -34,40 +34,107 @@ namespace TradePro.Views
             ["ADA"] = "cardano"
         };
 
+        private string _selectedSide = "LONG";
+        private decimal _userBalance = 0m;
+
         public MarketDetailView()
         {
             InitializeComponent();
             try { _cg.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProClient/1.0"); } catch { }
             try { _binance.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProClient/1.0"); } catch { }
+
+            // initialize UI defaults
+            Loaded += MarketDetailView_Loaded;
+        }
+
+        private void MarketDetailView_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ensure visual state for side buttons
+            UpdateSideButtonsVisual();
+
+            if (LeverageSlider != null && LeverageText != null)
+                LeverageText.Text = ((int)LeverageSlider.Value).ToString() + "x";
+
+            if (AmountSlider != null && AmountText != null)
+                AmountText.Text = AmountSlider.Value.ToString("C");
+
+            // Try set amount slider max to user's balance
+            try
+            {
+                var db = App.DbContext;
+                if (db != null)
+                {
+                    var user = db.Users.FirstOrDefault();
+                    if (user != null)
+                    {
+                        _userBalance = user.Balance;
+                        if (AmountSlider != null)
+                        {
+                            AmountSlider.Maximum = (double)user.Balance;
+                            AmountSlider.Value = Math.Min(AmountSlider.Maximum, 100);
+                        }
+
+                        if (BalanceText != null)
+                            BalanceText.Text = $"(Balance: {user.Balance:C})";
+                    }
+                }
+            }
+            catch
+            {
+                // ignore any DB issues
+            }
         }
 
         public async Task LoadSymbolAsync(string symbol)
         {
             _symbol = symbol;
-            SymbolText.Text = symbol;
 
-            // Try fetch price from server first
             try
             {
-                var resp = await _http.GetAsync("/api/markets");
-                if (resp.IsSuccessStatusCode)
+                SymbolText.Text = symbol;
+
+                // Try fetch price from server first with short timeout
+                try
                 {
-                    var stream = await resp.Content.ReadAsStreamAsync();
-                    var list = await JsonSerializer.DeserializeAsync<System.Collections.Generic.List<Market>>(stream, _jsonOptions);
-                    var m = list?.Find(x => x.Symbol == symbol);
-                    if (m != null)
+                    using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    var resp = await _http.GetAsync("/api/markets", cts.Token);
+                    if (resp.IsSuccessStatusCode)
                     {
-                        PriceText.Text = m.Price.ToString("C");
+                        var stream = await resp.Content.ReadAsStreamAsync(cts.Token);
+                        var list = await JsonSerializer.DeserializeAsync<System.Collections.Generic.List<Market>>(stream, _jsonOptions, cts.Token);
+                        var m = list?.Find(x => x.Symbol == symbol);
+                        if (m != null && PriceText != null)
+                        {
+                            PriceText.Text = m.Price.ToString("C");
+                        }
                     }
                 }
+                catch
+                {
+                    // server may be down or slow; ignore and continue to fetch live price
+                }
+
+                // Fetch latest single price immediately (fast) to show current price while chart loads
+                _ = UpdateLatestPriceAsync();
+
+                // Load chart in background without blocking UI
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await LoadFromBinanceAsync("1h");
+                    }
+                    catch
+                    {
+                        // ignore chart errors
+                    }
+                });
             }
-            catch { }
-
-            // Fetch latest single price immediately (fast) to show current price while chart loads
-            _ = UpdateLatestPriceAsync();
-
-            // Load default timeframe (1H)
-            await LoadFromBinanceAsync("1h");
+            catch (Exception ex)
+            {
+                // ensure errors don't bubble up to UI caller
+                try { OrderStatusText.Text = "Error cargando simbolo: " + ex.Message; } catch { }
+            }
         }
 
         private async Task UpdateLatestPriceAsync()
@@ -76,10 +143,19 @@ namespace TradePro.Views
             try
             {
                 var url = $"https://api.coingecko.com/api/v3/simple/price?ids={id}&vs_currencies=usd&include_24hr_change=true";
-                using var resp = await _cg.GetAsync(url);
-                if (!resp.IsSuccessStatusCode) return;
-                using var stream = await resp.Content.ReadAsStreamAsync();
-                using var doc = await JsonDocument.ParseAsync(stream);
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(6));
+                using var resp = await _cg.GetAsync(url, cts.Token);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        // rate limited - don't spam CoinGecko
+                        return;
+                    }
+                    return;
+                }
+                using var stream = await resp.Content.ReadAsStreamAsync(cts.Token);
+                using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cts.Token);
                 if (doc.RootElement.TryGetProperty(id, out var el))
                 {
                     if (el.TryGetProperty("usd", out var priceEl) && priceEl.TryGetDecimal(out var price))
@@ -88,7 +164,10 @@ namespace TradePro.Views
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                // ignore network/parse issues
+            }
         }
 
         // Use Binance Klines for intraday accurate candles. Map symbol to market like BTCUSDT.
@@ -100,14 +179,15 @@ namespace TradePro.Views
         private async Task LoadFromBinanceAsync(string interval)
         {
             var pair = MapSymbolToBinancePair(_symbol);
-            var url = $"https://api.binance.com/api/v3/klines?symbol={pair}&interval={interval}&limit=500";
+            var url = $"https://api.binance.com/api/v3/klines?symbol={pair}&interval={interval}&limit=200"; // reduce limit for performance
             try
             {
-                using var resp = await _binance.GetAsync(url);
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+                using var resp = await _binance.GetAsync(url, cts.Token);
                 if (!resp.IsSuccessStatusCode) return;
 
-                using var stream = await resp.Content.ReadAsStreamAsync();
-                using var doc = await JsonDocument.ParseAsync(stream);
+                using var stream = await resp.Content.ReadAsStreamAsync(cts.Token);
+                using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cts.Token);
 
                 var series = new CandleStickSeries { StrokeThickness = 1 /* CandleWidth will be set dynamically */ };
 
@@ -236,6 +316,83 @@ namespace TradePro.Views
             _ = LoadFromBinanceAsync("1d");
         }
 
+        private void UpdateSideButtonsVisual()
+        {
+            // green for long selected, red for short selected
+            var longColor = (Brush)new SolidColorBrush(Color.FromRgb(30, 127, 62));
+            var shortColor = (Brush)new SolidColorBrush(Color.FromRgb(183, 28, 28));
+            var inactiveColor = (Brush)new SolidColorBrush(Color.FromRgb(40, 44, 48));
+
+            if (LongButton == null || ShortButton == null) return;
+
+            if (_selectedSide == "LONG")
+            {
+                LongButton.Background = longColor;
+                ShortButton.Background = inactiveColor;
+            }
+            else
+            {
+                ShortButton.Background = shortColor;
+                LongButton.Background = inactiveColor;
+            }
+        }
+
+        private void LongButton_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedSide = "LONG";
+            UpdateSideButtonsVisual();
+        }
+
+        private void ShortButton_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedSide = "SHORT";
+            UpdateSideButtonsVisual();
+        }
+
+        private void LeverageSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (LeverageText == null || LeverageSlider == null) return;
+            LeverageText.Text = ((int)LeverageSlider.Value).ToString() + "x";
+        }
+
+        private void AmountSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (AmountText == null || AmountSlider == null) return;
+            AmountText.Text = AmountSlider.Value.ToString("C");
+        }
+
+        // Preset percentage buttons
+        private void Preset25_Click(object sender, RoutedEventArgs e)
+        {
+            SetAmountPercent(0.25);
+        }
+        private void Preset50_Click(object sender, RoutedEventArgs e)
+        {
+            SetAmountPercent(0.50);
+        }
+        private void Preset75_Click(object sender, RoutedEventArgs e)
+        {
+            SetAmountPercent(0.75);
+        }
+        private void Preset100_Click(object sender, RoutedEventArgs e)
+        {
+            SetAmountPercent(1.0);
+        }
+
+        private void SetAmountPercent(double percent)
+        {
+            try
+            {
+                if (AmountSlider == null) return;
+                double max = AmountSlider.Maximum;
+                if (max <= 0 && _userBalance > 0) max = (double)_userBalance;
+                var val = Math.Round(max * percent, 2);
+                AmountSlider.Value = Math.Min(val, AmountSlider.Maximum);
+                if (AmountText != null) AmountText.Text = AmountSlider.Value.ToString("C");
+            }
+            catch { }
+        }
+
         private async void OpenButton_Click(object sender, RoutedEventArgs e)
         {
             OrderStatusText.Text = "Abriendo...";
@@ -243,9 +400,11 @@ namespace TradePro.Views
 
             try
             {
-                var side = (SideCombo.SelectedItem as ComboBoxItem)?.Content as string ?? "LONG";
-                if (!decimal.TryParse(AmountBox.Text, out var amount)) throw new Exception("Cantidad inválida");
-                if (!int.TryParse(LeverageBox.Text, out var lev)) throw new Exception("Apalancamiento inválido");
+                var side = _selectedSide ?? "LONG";
+                var amount = (decimal)(AmountSlider?.Value ?? 0);
+                var lev = (int)(LeverageSlider?.Value ?? 1);
+                if (amount <= 0) throw new Exception("Cantidad invalida");
+                if (lev < 1 || lev > 100) throw new Exception("Apalancamiento invalido");
 
                 // Simple local simulation: create a trade in local DB if available
                 try
@@ -259,7 +418,7 @@ namespace TradePro.Views
                             var t = new Trade { Symbol = _symbol + "USD", Side = side, Pnl = 0m, Timestamp = DateTime.Now, UserId = user.Id };
                             db.Trades.Add(t);
                             await db.SaveChangesAsync();
-                            OrderStatusText.Text = "Posición abierta (simulada).";
+                            OrderStatusText.Text = "Posicion abierta (simulada).";
                         }
                         else
                         {

@@ -16,5 +16,5 @@ D:\reku\TradePro\TradePro\App.xaml
 220-255561305
 MainWindow.xaml;Views\DashboardView.xaml;Views\HistoryView.xaml;Views\MarketCard.xaml;Views\MarketDetailView.xaml;Views\PortfolioView.xaml;Views\ProfileView.xaml;Views\StatisticsView.xaml;Views\TopBar.xaml;Views\TradeView.xaml;WelcomeWindow.xaml;
 
-True
+False
 

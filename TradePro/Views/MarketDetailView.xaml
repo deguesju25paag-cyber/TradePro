@@ -5,9 +5,9 @@
              FontFamily="Segoe UI">
     <UserControl.Resources>
         <!-- Theme brushes -->
-        <SolidColorBrush x:Key="BackgroundDark" Color="#0B0C0D" />
-        <SolidColorBrush x:Key="PanelBg" Color="#0F1316" />
-        <SolidColorBrush x:Key="CardBg" Color="#111315" />
+        <SolidColorBrush x:Key="BackgroundDark" Color="#0E0F10" />
+        <SolidColorBrush x:Key="PanelBg" Color="#0F1313" />
+        <SolidColorBrush x:Key="CardBg" Color="#0F1313" />
         <SolidColorBrush x:Key="MutedText" Color="#9A9A9A" />
         <SolidColorBrush x:Key="AccentBlue" Color="#2D8CFF" />
         <SolidColorBrush x:Key="LongGreen" Color="#1E7F3E" />
@@ -120,7 +120,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock x:Name="SymbolText" Text="SYMBOL" Foreground="White" FontSize="16" FontWeight="Bold" />
+                            <TextBlock x:Name="SymbolText" Text="SYMBOL" Foreground="White" FontSize="26" FontWeight="Bold" />
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="PriceText" Text="$0.00" Foreground="{StaticResource MutedText}" FontSize="13" />
                                 <TextBlock x:Name="PriceChangeIcon" Text="▲" Foreground="#4CAF50" FontSize="13" Margin="8,0,0,0" Visibility="Collapsed" />
@@ -131,14 +131,14 @@
                 </Border>
 
                 <!-- Side selector -->
-                <TextBlock Text="Side" Foreground="{StaticResource MutedText}" Margin="2,6,0,6" />
+                <TextBlock Text="Side" Foreground="{StaticResource MutedText}" Margin="2,26,0,6" />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                     <Button x:Name="LongButton" Content="LONG" Click="LongButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource LongGreen}" Width="96" Height="40" Margin="0,0,8,0" ToolTip="Abrir posicion larga" />
                     <Button x:Name="ShortButton" Content="SHORT" Click="ShortButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource ShortRed}" Width="96" Height="40" ToolTip="Abrir posicion corta" />
                 </StackPanel>
 
                 <!-- Leverage -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,10,0,22">
                     <StackPanel Width="260">
                         <TextBlock Text="Leverage" Foreground="{StaticResource MutedText}" />
                         <Slider x:Name="LeverageSlider" Style="{StaticResource ModernSlider}" Minimum="1" Maximum="100" Value="1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="LeverageSlider_ValueChanged" Margin="0,8,0,0" />
@@ -150,15 +150,15 @@
 
                 <!-- Amount -->
                 <TextBlock Text="Cantidad ($)" Foreground="{StaticResource MutedText}" />
-                <StackPanel Margin="0,6,0,8">
+                <StackPanel Margin="0,6,0,18">
                     <Slider x:Name="AmountSlider" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="1000" Value="100" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="AmountSlider_ValueChanged" />
-					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,0">
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,10">
 						<Button Content="25%" Style="{StaticResource PresetButton}" Margin="8,0,0,0" Click="Preset25_Click" />
 						<Button Content="50%" Style="{StaticResource PresetButton}" Margin="8,0,0,0" Click="Preset50_Click" />
 						<Button Content="75%" Style="{StaticResource PresetButton}" Margin="8,0,0,0" Click="Preset75_Click" />
 						<Button Content="100%" Style="{StaticResource PresetButton}" Margin="8,0,0,0" Click="Preset100_Click" />
 					</StackPanel>
-					<StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+					<StackPanel Orientation="Horizontal" Margin="0,15,0,0" VerticalAlignment="Center">
                         <TextBlock x:Name="AmountText" Text="$100.00" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock x:Name="BalanceText" Text="(Balance: $0.00)" Foreground="{StaticResource MutedText}" Margin="12,0,0,0" VerticalAlignment="Center" />
                         
@@ -166,8 +166,8 @@
                 </StackPanel>
 
                 <!-- Open button and status -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,0">
-                    <Button x:Name="OpenButton" Content="Abrir posicion" Width="160" Height="44" Click="OpenButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource AccentBlue}" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,25,0,0">
+                    <Button x:Name="OpenButton" Content="Abrir posicion" Width="200" Height="54" Click="OpenButton_Click" Style="{StaticResource ModernButton}" Background="#1A2121" />
                     <TextBlock x:Name="OrderStatusText" Text="" Foreground="#FFB86B" Margin="12,12,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
@@ -182,13 +182,13 @@
             </Grid.RowDefinitions>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,12">
-                <Button x:Name="Btn1H" Content="1H" Width="48" Margin="0,0,8,0" Click="Btn1H_Click" Style="{StaticResource ModernButton}" />
-                <Button x:Name="Btn4H" Content="4H" Width="48" Margin="0,0,8,0" Click="Btn4H_Click" Style="{StaticResource ModernButton}" />
-                <Button x:Name="Btn1D" Content="1D" Width="48" Margin="0,0,8,0" Click="Btn1D_Click" Style="{StaticResource ModernButton}" />
+                <Button x:Name="Btn1H" Content="1H" Width="48" Margin="0,0,8,0" Click="Btn1H_Click" Style="{StaticResource ModernButton}" Background="#1A2121"/>
+                <Button x:Name="Btn4H" Content="4H" Width="48" Margin="0,0,8,0" Click="Btn4H_Click" Style="{StaticResource ModernButton}" Background="#1A2121"/>
+                <Button x:Name="Btn1D" Content="1D" Width="48" Margin="0,0,8,0" Click="Btn1D_Click" Style="{StaticResource ModernButton}" Background="#1A2121"/>
             </StackPanel>
 
             <Border Grid.Row="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="12">
-                <oxy:PlotView x:Name="ChartPlotView" Height="520" Background="#0E0F10" />
+                <oxy:PlotView x:Name="ChartPlotView" Height="820" Background="#0E0F10" />
             </Border>
         </Grid>
     </Grid>

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Microsoft.Extensions.Caching.Memory;
 using Zerbitzaria.Data;
+using Microsoft.Data.Sqlite;
 using Zerbitzaria.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,129 +19,53 @@ builder.Services.AddEndpointsApiExplorer();
 // Add HttpClient factory and background price updater service
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<Zerbitzaria.Services.MarketCache>();
 builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
 
 var app = builder.Build();
 
-// Ensure DB: try migrations, fallback to EnsureCreated
-using (var scope = app.Services.CreateScope())
+// Helper to ensure DB exists and seed minimal data if needed
+async Task EnsureDatabaseReadyAsync()
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    using var s = app.Services.CreateScope();
+    var d = s.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        db.Database.Migrate();
+        await d.Database.EnsureCreatedAsync();
     }
-    catch (Exception ex)
-    {
-        try
-        {
-            db.Database.EnsureCreated();
-        }
-        catch (Exception inner)
-        {
-            Console.WriteLine("Failed to initialize database: " + ex.Message + " / " + inner.Message);
-            throw;
-        }
-    }
+    catch { }
 
-    // Manual seeding: if key tables are empty, insert demo data (works even when EnsureCreated used)
     try
     {
-        // If queries throw because tables are missing, recreate DB and continue
-        var missingTables = false;
-        try
-        {
-            // quick probe
-            _ = db.Users.Any();
-        }
-        catch (Microsoft.Data.Sqlite.SqliteException)
-        {
-            missingTables = true;
-        }
-
-        if (missingTables)
-        {
-            Console.WriteLine("Database is missing expected tables, recreating database...");
-            try
-            {
-                db.Database.EnsureDeleted();
-            }
-            catch (Exception) { }
-            db.Database.EnsureCreated();
-        }
-
-        if (!db.Users.Any())
+        if (!d.Users.Any())
         {
             var pwd = BCrypt.Net.BCrypt.HashPassword("admin");
-            db.Users.Add(new User { Username = "admin", PasswordHash = pwd, Balance = 100000m });
-            db.SaveChanges();
-            Console.WriteLine("Seeded admin user");
+            d.Users.Add(new User { Username = "admin", PasswordHash = pwd, Balance = 100000m });
+            d.SaveChanges();
         }
 
-        if (!db.Markets.Any())
+        if (!d.Markets.Any())
         {
-            db.Markets.AddRange(
+            d.Markets.AddRange(
                 new Market { Symbol = "BTC", Price = 42123.45m, Change = 2.1, IsUp = true },
                 new Market { Symbol = "ETH", Price = 3210.12m, Change = 1.8, IsUp = true },
                 new Market { Symbol = "SOL", Price = 98.45m, Change = -0.5, IsUp = false },
                 new Market { Symbol = "XRP", Price = 0.78m, Change = 0.9, IsUp = true }
             );
-            db.SaveChanges();
-            Console.WriteLine("Seeded markets");
-        }
-
-        if (!db.Positions.Any())
-        {
-            // link to admin user
-            var admin = db.Users.FirstOrDefault();
-            if (admin != null)
-            {
-                db.Positions.Add(new Position { Symbol = "DOGE", Side = "LONG", Leverage = 63, Margin = 12m, UserId = admin.Id });
-                db.SaveChanges();
-                Console.WriteLine("Seeded positions");
-            }
-        }
-
-        if (!db.Trades.Any())
-        {
-            var admin = db.Users.FirstOrDefault();
-            if (admin != null)
-            {
-                db.Trades.Add(new Trade { Symbol = "BTCUSD", Side = "LONG", Pnl = 1771827.25m, Timestamp = new System.DateTime(2026, 1, 2), UserId = admin.Id });
-                db.SaveChanges();
-                Console.WriteLine("Seeded trades");
-            }
-        }
-
-        // Ensure all users have a default balance of 100000 and remove any existing positions so dashboard shows no open positions
-        try
-        {
-            var users = db.Users.ToList();
-            foreach (var u in users)
-            {
-                if (u.Balance != 100000m)
-                {
-                    u.Balance = 100000m;
-                }
-            }
-            db.SaveChanges();
-
-            if (db.Positions.Any())
-            {
-                db.Positions.RemoveRange(db.Positions);
-                db.SaveChanges();
-                Console.WriteLine("Cleared existing positions to ensure empty dashboard.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error enforcing defaults: " + ex.Message);
+            d.SaveChanges();
         }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Seeding error: " + ex.Message);
-    }
+    catch (Exception ex) { Console.WriteLine("EnsureDatabaseReadyAsync seed error: " + ex.Message); }
+}
+
+// Ensure DB is ready and seeded
+try
+{
+    EnsureDatabaseReadyAsync().GetAwaiter().GetResult();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("DB ensure failed: " + ex.Message);
 }
 
 Console.WriteLine("Zerbitzaria running on http://localhost:5000");
@@ -168,7 +93,7 @@ app.MapPost("/api/register", async (ApplicationDbContext db, UserDto dto) =>
 
 // Get markets - resilient: try DB, on DB error fallback to CoinGecko live prices
 // Exposed markets endpoint - try DB, fallback to CoinGecko with caching and a larger asset set
-app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory httpFactory, Microsoft.Extensions.Caching.Memory.IMemoryCache cache) =>
+app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory httpFactory, Zerbitzaria.Services.MarketCache cache, Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache) =>
 {
     try
     {
@@ -183,8 +108,11 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
     // If DB unavailable or empty, use CoinGecko. Cache results briefly to avoid rate limits.
     try
     {
-        var cached = cache.Get<List<object>>("coingecko_markets");
-        if (cached != null) return Results.Ok(cached);
+        // prefer in-process MarketCache singleton
+        if (cache != null && cache.HasData)
+        {
+            return Results.Ok(cache.GetAll());
+        }
 
         var client = httpFactory.CreateClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
@@ -238,8 +166,9 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
             list.Add(new { Symbol = sym, Price = price, Change = change, IsUp = change >= 0 });
         }
 
-        // cache for short period to reduce repeated calls
-        cache.Set("coingecko_markets", list, new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20) });
+        // also store in memoryCache for other consumers if available
+        try { memoryCache?.Set("coingecko_markets", list, new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20) }); } catch { }
+        try { cache?.SetAll(list); } catch { }
 
         return Results.Ok(list);
     }
@@ -262,6 +191,146 @@ app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int use
 {
     var trades = await db.Trades.Where(t => t.UserId == userId).OrderByDescending(t => t.Timestamp).ToListAsync();
     return Results.Ok(trades);
+});
+
+// Open a new trade for a user
+app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory) =>
+{
+    try { await db.Database.EnsureCreatedAsync(); } catch { }
+    var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
+    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+
+    // Determine entry price: prefer provided, then DB market, then CoinGecko
+    decimal entry = 0m;
+    if (dto.EntryPrice.HasValue && dto.EntryPrice.Value > 0) entry = dto.EntryPrice.Value;
+    else
+    {
+        var m = await db.Markets.SingleOrDefaultAsync(x => x.Symbol == dto.Symbol);
+        if (m != null) entry = m.Price;
+        else
+        {
+            // fallback to CoinGecko
+            try
+            {
+                var client = httpFactory.CreateClient();
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
+                var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["BTC"] = "bitcoin",
+                    ["ETH"] = "ethereum",
+                    ["SOL"] = "solana",
+                    ["XRP"] = "ripple",
+                    ["DOGE"] = "dogecoin",
+                    ["ADA"] = "cardano"
+                };
+                if (map.TryGetValue(dto.Symbol, out var id))
+                {
+                    var url = $"https://api.coingecko.com/api/v3/simple/price?ids={id}&vs_currencies=usd";
+                    var resp = await client.GetAsync(url);
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+                        if (doc.RootElement.TryGetProperty(id, out var el) && el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec))
+                        {
+                            entry = dec;
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+    }
+
+    if (entry <= 0) return Results.BadRequest(new { message = "No se pudo determinar el precio de entrada" });
+
+    // Compute exposure and quantity
+    var exposure = dto.Margin * dto.Leverage;
+    var quantity = exposure / entry;
+
+    // Check user balance for margin
+    if (user.Balance < dto.Margin) return Results.BadRequest(new { message = "Saldo insuficiente" });
+
+    user.Balance -= dto.Margin; // reserve margin
+
+    var trade = new Zerbitzaria.Models.Trade
+    {
+        Symbol = dto.Symbol,
+        Side = dto.Side,
+        EntryPrice = entry,
+        Margin = dto.Margin,
+        Leverage = dto.Leverage,
+        Quantity = quantity,
+        IsOpen = true,
+        Timestamp = DateTime.UtcNow,
+        UserId = userId,
+        Pnl = 0m
+    };
+
+    db.Trades.Add(trade);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(trade);
+});
+
+// Close a trade
+app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory) =>
+{
+    try { await db.Database.EnsureCreatedAsync(); } catch { }
+    var trade = await db.Trades.SingleOrDefaultAsync(t => t.Id == tradeId && t.UserId == userId);
+    if (trade == null) return Results.NotFound(new { message = "Trade no encontrado" });
+    if (!trade.IsOpen) return Results.BadRequest(new { message = "Trade ya cerrado" });
+
+    // determine current price
+    decimal current = 0m;
+    var m = await db.Markets.SingleOrDefaultAsync(x => x.Symbol == trade.Symbol);
+    if (m != null) current = m.Price;
+    else
+    {
+        try
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["BTC"] = "bitcoin", ["ETH"] = "ethereum", ["SOL"] = "solana", ["XRP"] = "ripple", ["DOGE"] = "dogecoin", ["ADA"] = "cardano" };
+            if (map.TryGetValue(trade.Symbol, out var id))
+            {
+                var client = httpFactory.CreateClient();
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
+                var url = $"https://api.coingecko.com/api/v3/simple/price?ids={id}&vs_currencies=usd";
+                var resp = await client.GetAsync(url);
+                if (resp.IsSuccessStatusCode)
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+                    if (doc.RootElement.TryGetProperty(id, out var el) && el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) current = dec;
+                }
+            }
+        }
+        catch { }
+    }
+
+    if (current <= 0) return Results.BadRequest(new { message = "No se pudo determinar precio actual" });
+
+    // calculate pnl
+    decimal pnl = 0m;
+    if (string.Equals(trade.Side, "LONG", StringComparison.OrdinalIgnoreCase))
+    {
+        pnl = (current - trade.EntryPrice) * trade.Quantity;
+    }
+    else
+    {
+        pnl = (trade.EntryPrice - current) * trade.Quantity;
+    }
+
+    trade.Pnl = pnl;
+    trade.IsOpen = false;
+
+    // release margin + pnl to user balance
+    var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
+    if (user != null)
+    {
+        user.Balance += trade.Margin + pnl;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { trade, currentPrice = current, pnl });
 });
 
 // Get user profile

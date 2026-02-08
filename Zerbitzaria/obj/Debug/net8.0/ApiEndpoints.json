@@ -1,7 +1,7 @@
 [
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_1",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
     "RelativePath": "api/login",
     "HttpMethod": "POST",
     "IsController": false,
@@ -23,7 +23,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_4",
     "RelativePath": "api/markets",
     "HttpMethod": "GET",
     "IsController": false,
@@ -39,7 +39,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
     "RelativePath": "api/register",
     "HttpMethod": "POST",
     "IsController": false,
@@ -61,7 +61,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_6",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_9",
     "RelativePath": "api/users/{userId}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -83,7 +83,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_7",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_10",
     "RelativePath": "api/users/{userId}/dashboard",
     "HttpMethod": "GET",
     "IsController": false,
@@ -105,7 +105,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_4",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_5",
     "RelativePath": "api/users/{userId}/positions",
     "HttpMethod": "GET",
     "IsController": false,
@@ -127,7 +127,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_5",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_6",
     "RelativePath": "api/users/{userId}/trades",
     "HttpMethod": "GET",
     "IsController": false,
@@ -135,6 +135,60 @@
     "Parameters": [
       {
         "Name": "userId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Program\u002B\u003C\u003Ec",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_7",
+    "RelativePath": "api/users/{userId}/trades",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Zerbitzaria.Dtos.OpenTradeDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Program\u002B\u003C\u003Ec",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_8",
+    "RelativePath": "api/users/{userId}/trades/{tradeId}/close",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "tradeId",
         "Type": "System.Int32",
         "IsRequired": true
       }

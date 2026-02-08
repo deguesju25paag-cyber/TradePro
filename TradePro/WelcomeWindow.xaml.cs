@@ -78,10 +78,12 @@ namespace TradePro
             try
             {
                 var md = new MarketDetailView();
+                // refresh dashboard when a new position is opened
+                md.PositionOpened += () => ShowDashboard(_currentUsername);
                 MainContent.Content = md;
 
-                // populate details from local DB if available (MarketDetailView will try server)
-                await md.LoadSymbolAsync(symbol);
+                // populate details from server; pass current user id so opening trades is possible
+                await md.LoadSymbolAsync(symbol, _currentUserId);
             }
             catch (Exception ex)
             {

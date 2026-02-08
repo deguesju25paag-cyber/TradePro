@@ -26,8 +26,8 @@ namespace Zerbitzaria.Data
                 new Market { Id = 4, Symbol = "XRP", Price = 0.78m, Change = 0.9, IsUp = true }
             );
 
-            modelBuilder.Entity<Position>().HasData(new Position { Id = 1, Symbol = "DOGE", Side = "LONG", Leverage = 63, Margin = 12m, UserId = 1 });
-            modelBuilder.Entity<Trade>().HasData(new Trade { Id = 1, Symbol = "BTCUSD", Side = "LONG", Pnl = 1771827.25m, Timestamp = new System.DateTime(2026,1,2), UserId = 1 });
+            modelBuilder.Entity<Position>().HasData(new Position { Id = 1, Symbol = "DOGE", Side = "LONG", Leverage = 63, Margin = 12m, EntryPrice = 0m, Quantity = 0m, IsOpen = true, UserId = 1 });
+            modelBuilder.Entity<Trade>().HasData(new Trade { Id = 1, Symbol = "BTCUSD", Side = "LONG", Pnl = 1771827.25m, EntryPrice = 42123.45m, Margin = 100m, Leverage = 1, Quantity = 100m, IsOpen = false, Timestamp = new System.DateTime(2026,1,2), UserId = 1 });
         }
     }
 }

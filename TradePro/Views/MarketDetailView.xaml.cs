@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -16,10 +17,13 @@ namespace TradePro.Views
 {
     public partial class MarketDetailView : UserControl
     {
+        public event Action? PositionOpened;
+
         private static readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
         private static readonly HttpClient _cg = new HttpClient();
         private static readonly HttpClient _binance = new HttpClient();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        private static readonly System.Text.Json.JsonSerializerOptions _postOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         private string _symbol = "";
         private PlotModel _plotModel = new PlotModel { Background = OxyColors.Transparent };
@@ -36,6 +40,8 @@ namespace TradePro.Views
 
         private string _selectedSide = "LONG";
         private decimal _userBalance = 0m;
+        private int? _currentUserId;
+        private decimal _currentPrice = 0m;
 
         public MarketDetailView()
         {
@@ -85,9 +91,10 @@ namespace TradePro.Views
             }
         }
 
-        public async Task LoadSymbolAsync(string symbol)
+        public async Task LoadSymbolAsync(string symbol, int? userId = null)
         {
             _symbol = symbol;
+            _currentUserId = userId;
 
             try
             {
@@ -160,7 +167,8 @@ namespace TradePro.Views
                 {
                     if (el.TryGetProperty("usd", out var priceEl) && priceEl.TryGetDecimal(out var price))
                     {
-                        PriceText.Dispatcher.Invoke(() => PriceText.Text = price.ToString("C"));
+                        _currentPrice = price;
+                        PriceText.Dispatcher.Invoke(() => PriceText.Text = price.ToString("C", CultureInfo.CurrentCulture));
                     }
                 }
             }
@@ -228,10 +236,11 @@ namespace TradePro.Views
                     // kline array: [openTime, open, high, low, close, ...]
                     var arr = item.EnumerateArray().ToArray();
                     var ts = arr[0].GetInt64();
-                    var open = decimal.Parse(arr[1].GetString());
-                    var high = decimal.Parse(arr[2].GetString());
-                    var low = decimal.Parse(arr[3].GetString());
-                    var close = decimal.Parse(arr[4].GetString());
+                    // Parse numeric strings from Binance using invariant culture to avoid locale issues
+                    if (!decimal.TryParse(arr[1].GetString(), NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var open)) continue;
+                    if (!decimal.TryParse(arr[2].GetString(), NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var high)) continue;
+                    if (!decimal.TryParse(arr[3].GetString(), NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var low)) continue;
+                    if (!decimal.TryParse(arr[4].GetString(), NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var close)) continue;
 
                     var dt = DateTimeOffset.FromUnixTimeMilliseconds(ts).UtcDateTime;
                     double x = DateTimeAxis.ToDouble(dt);
@@ -264,21 +273,22 @@ namespace TradePro.Views
                     series.CandleWidth = 0.9;
                 }
 
-                if (lastClose != 0m)
-                {
-                    var line = new LineAnnotation
+                    if (lastClose != 0m)
                     {
-                        Type = LineAnnotationType.Horizontal,
-                        Y = (double)lastClose,
-                        Color = OxyColor.FromRgb(200, 80, 80),
-                        LineStyle = LineStyle.Dash,
-                        Text = $"{lastClose:C}",
-                        TextColor = OxyColors.LightGray,
-                        TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right,
-                        TextMargin = 6
-                    };
-                    model.Annotations.Add(line);
-                }
+                        var line = new LineAnnotation
+                        {
+                            Type = LineAnnotationType.Horizontal,
+                            Y = (double)lastClose,
+                            Color = OxyColor.FromRgb(200, 80, 80),
+                            LineStyle = LineStyle.Dash,
+                            // Format price using invariant culture and two decimals to avoid locale comma/exponent problems
+                            Text = string.Format(CultureInfo.InvariantCulture, "{0:N2}", lastClose),
+                            TextColor = OxyColors.LightGray,
+                            TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right,
+                            TextMargin = 6
+                        };
+                        model.Annotations.Add(line);
+                    }
 
                 var plotView = this.FindName("ChartPlotView") as OxyPlot.Wpf.PlotView;
                 if (plotView != null)
@@ -292,7 +302,9 @@ namespace TradePro.Views
 
                 if (lastClose != 0m)
                 {
-                    PriceText.Dispatcher.Invoke(() => PriceText.Text = lastClose.ToString("C"));
+                    // Use invariant formatting for numeric string but display currency using current culture to keep UI consistent
+                    var formatted = lastClose.ToString("C", CultureInfo.CurrentCulture);
+                    PriceText.Dispatcher.Invoke(() => PriceText.Text = formatted);
                 }
             }
             catch
@@ -415,10 +427,53 @@ namespace TradePro.Views
                         var user = db.Users.FirstOrDefault();
                         if (user != null)
                         {
-                            var t = new Trade { Symbol = _symbol + "USD", Side = side, Pnl = 0m, Timestamp = DateTime.Now, UserId = user.Id };
-                            db.Trades.Add(t);
-                            await db.SaveChangesAsync();
-                            OrderStatusText.Text = "Posicion abierta (simulada).";
+                            // Compute quantity and entry details
+                            var quantity = amount * lev; // simplified: quantity = margin * leverage
+                            // If we have a current user id, call server API to open trade
+                            if (_currentUserId.HasValue)
+                            {
+                                try
+                                {
+                                    var payload = new { Symbol = _symbol, Side = side, Margin = amount, Leverage = lev };
+                                    var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload, _postOptions), System.Text.Encoding.UTF8, "application/json");
+                                    var resp = await _http.PostAsync($"/api/users/{_currentUserId.Value}/trades", content);
+                                    if (resp.IsSuccessStatusCode)
+                                    {
+                                        OrderStatusText.Text = "Posicion abierta.";
+                                        try { PositionOpened?.Invoke(); } catch { }
+                                    }
+                                    else
+                                    {
+                                        var body = string.Empty;
+                                        try { body = await resp.Content.ReadAsStringAsync(); } catch { }
+                                        OrderStatusText.Text = "Error abriendo posicion (server): " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    OrderStatusText.Text = "Error server: " + ex.Message;
+                                }
+                            }
+                            else
+                            {
+                                // fallback to local DB if no server user
+                                db.Trades.Add(new Trade
+                                {
+                                    Symbol = _symbol + "USD",
+                                    Side = side,
+                                    Pnl = 0m,
+                                    EntryPrice = _currentPrice,
+                                    Margin = amount,
+                                    Leverage = lev,
+                                    Quantity = quantity,
+                                    IsOpen = true,
+                                    Timestamp = DateTime.Now,
+                                    UserId = user.Id
+                                });
+                                await db.SaveChangesAsync();
+                                OrderStatusText.Text = "Posicion abierta (local).";
+                                try { PositionOpened?.Invoke(); } catch { }
+                            }
                         }
                         else
                         {

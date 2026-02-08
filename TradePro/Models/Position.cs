@@ -10,6 +10,9 @@ namespace TradePro.Models
         public string Side { get; set; } = string.Empty; // LONG/SHORT
         public int Leverage { get; set; }
         public decimal Margin { get; set; }
+        public decimal EntryPrice { get; set; }
+        public decimal Quantity { get; set; }
+        public bool IsOpen { get; set; } = true;
         public int UserId { get; set; }
     }
 }

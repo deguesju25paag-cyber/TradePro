@@ -4,16 +4,16 @@
 winexe
 C#
 .cs
-D:\reku\TradePro\TradePro\obj\Debug\net8.0-windows\
+C:\Users\danel\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\
 TradePro
 none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-D:\reku\TradePro\TradePro\App.xaml
+C:\Users\danel\source\repos\TradePro\TradePro\App.xaml
 11-807685922
 
-23-782735730
-220-255561305
+24-1858534702
+2201263429168
 MainWindow.xaml;Views\DashboardView.xaml;Views\HistoryView.xaml;Views\MarketCard.xaml;Views\MarketDetailView.xaml;Views\PortfolioView.xaml;Views\ProfileView.xaml;Views\StatisticsView.xaml;Views\TopBar.xaml;Views\TradeView.xaml;WelcomeWindow.xaml;
 
 False

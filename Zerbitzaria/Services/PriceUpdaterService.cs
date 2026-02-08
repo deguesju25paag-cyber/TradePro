@@ -15,10 +15,34 @@ namespace Zerbitzaria.Services
         {
             ["BTC"] = "bitcoin",
             ["ETH"] = "ethereum",
+            ["BNB"] = "binancecoin",
+            ["ADA"] = "cardano",
+            ["DOGE"] = "dogecoin",
             ["SOL"] = "solana",
             ["XRP"] = "ripple",
-            ["DOGE"] = "dogecoin",
-            ["ADA"] = "cardano"
+            ["DOT"] = "polkadot",
+            ["LTC"] = "litecoin",
+            ["BCH"] = "bitcoin-cash",
+            ["LINK"] = "chainlink",
+            ["MATIC"] = "matic-network",
+            ["AVAX"] = "avalanche-2",
+            ["TRX"] = "tron",
+            ["SHIB"] = "shiba-inu",
+            ["UNI"] = "uniswap",
+            ["XLM"] = "stellar",
+            ["ATOM"] = "cosmos",
+            ["FTT"] = "ftx-token",
+            ["EOS"] = "eos",
+            ["AAVE"] = "aave",
+            ["NEAR"] = "near",
+            ["ALGO"] = "algorand",
+            ["FIL"] = "filecoin",
+            ["SUSHI"] = "sushi",
+            ["ICP"] = "internet-computer",
+            ["KSM"] = "kusama",
+            ["SNX"] = "havven",
+            ["GRT"] = "the-graph",
+            ["MKR"] = "maker"
         };
 
         public PriceUpdaterService(IHttpClientFactory httpFactory, IServiceScopeFactory scopeFactory)

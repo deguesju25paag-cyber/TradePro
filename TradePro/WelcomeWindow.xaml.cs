@@ -193,7 +193,12 @@ namespace TradePro
         }
 
         // Minimal stubs for other views - keep implementation simple to avoid compilation errors
-        private void ShowTradeView() { MainContent.Content = new TradeView(); }
+        private void ShowTradeView()
+        {
+            var tv = new TradeView();
+            tv.AssetClicked += async (symbol) => await OpenMarketDetail(symbol);
+            MainContent.Content = tv;
+        }
         private void ShowPortfolioView() { MainContent.Content = new PortfolioView(); }
         private void ShowHistoryView() { MainContent.Content = new HistoryView(); }
         private void ShowStatisticsView() { MainContent.Content = new StatisticsView(); }

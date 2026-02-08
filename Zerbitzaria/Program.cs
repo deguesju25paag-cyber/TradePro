@@ -1,4 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using Microsoft.Extensions.Caching.Memory;
 using Zerbitzaria.Data;
 using Zerbitzaria.Models;
 
@@ -13,6 +17,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 // Add HttpClient factory and background price updater service
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
 
 var app = builder.Build();
@@ -41,6 +46,29 @@ using (var scope = app.Services.CreateScope())
     // Manual seeding: if key tables are empty, insert demo data (works even when EnsureCreated used)
     try
     {
+        // If queries throw because tables are missing, recreate DB and continue
+        var missingTables = false;
+        try
+        {
+            // quick probe
+            _ = db.Users.Any();
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException)
+        {
+            missingTables = true;
+        }
+
+        if (missingTables)
+        {
+            Console.WriteLine("Database is missing expected tables, recreating database...");
+            try
+            {
+                db.Database.EnsureDeleted();
+            }
+            catch (Exception) { }
+            db.Database.EnsureCreated();
+        }
+
         if (!db.Users.Any())
         {
             var pwd = BCrypt.Net.BCrypt.HashPassword("admin");
@@ -139,58 +167,86 @@ app.MapPost("/api/register", async (ApplicationDbContext db, UserDto dto) =>
 });
 
 // Get markets - resilient: try DB, on DB error fallback to CoinGecko live prices
-app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory httpFactory) =>
+// Exposed markets endpoint - try DB, fallback to CoinGecko with caching and a larger asset set
+app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory httpFactory, Microsoft.Extensions.Caching.Memory.IMemoryCache cache) =>
 {
     try
     {
         var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
-        return Results.Ok(markets);
+        if (markets != null && markets.Count > 0) return Results.Ok(markets);
     }
     catch (Microsoft.Data.Sqlite.SqliteException sqliteEx)
     {
         Console.WriteLine("DB read error for /api/markets: " + sqliteEx.Message);
-        try
+    }
+
+    // If DB unavailable or empty, use CoinGecko. Cache results briefly to avoid rate limits.
+    try
+    {
+        var cached = cache.Get<List<object>>("coingecko_markets");
+        if (cached != null) return Results.Ok(cached);
+
+        var client = httpFactory.CreateClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
+
+        // Larger mapping of symbols -> coin ids (extendable)
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            var client = httpFactory.CreateClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
-            var ids = "bitcoin,ethereum,solana,ripple,dogecoin,cardano";
-            var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
-            var resp = await client.GetAsync(url);
-            if (!resp.IsSuccessStatusCode) return Results.StatusCode(502);
+            ["BTC"] = "bitcoin",
+            ["ETH"] = "ethereum",
+            ["BNB"] = "binancecoin",
+            ["ADA"] = "cardano",
+            ["DOGE"] = "dogecoin",
+            ["SOL"] = "solana",
+            ["XRP"] = "ripple",
+            ["DOT"] = "polkadot",
+            ["LTC"] = "litecoin",
+            ["BCH"] = "bitcoin-cash",
+            ["LINK"] = "chainlink",
+            ["MATIC"] = "matic-network",
+            ["AVAX"] = "avalanche-2",
+            ["TRX"] = "tron",
+            ["SHIB"] = "shiba-inu",
+            ["UNI"] = "uniswap",
+            ["XLM"] = "stellar",
+            ["ATOM"] = "cosmos",
+            ["FTT"] = "ftx-token",
+            ["EOS"] = "eos",
+            ["AAVE"] = "aave",
+            ["NEAR"] = "near",
+            ["ALGO"] = "algorand",
+            ["FIL"] = "filecoin",
+            ["SUSHI"] = "sushi"
+        };
 
-            var json = await resp.Content.ReadAsStringAsync();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var ids = string.Join(",", map.Values.Distinct());
+        var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+        var resp = await client.GetAsync(url);
+        if (!resp.IsSuccessStatusCode) return Results.StatusCode(502);
 
-            var list = new List<object>();
-            // build minimal Market-like objects
-            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["bitcoin"] = "BTC",
-                ["ethereum"] = "ETH",
-                ["solana"] = "SOL",
-                ["ripple"] = "XRP",
-                ["dogecoin"] = "DOGE",
-                ["cardano"] = "ADA"
-            };
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
 
-            foreach (var kv in map)
-            {
-                if (!doc.RootElement.TryGetProperty(kv.Key, out var el)) continue;
-                decimal price = 0m;
-                double change = 0;
-                if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
-                if (el.TryGetProperty("usd_24h_change", out var cEl)) change = cEl.GetDouble();
-
-                list.Add(new { Symbol = kv.Value, Price = price, Change = change, IsUp = change >= 0 });
-            }
-
-            return Results.Ok(list);
-        }
-        catch (Exception ex)
+        var list = new List<object>();
+        foreach (var kv in map)
         {
-            Console.WriteLine("CoinGecko fallback failed: " + ex.Message);
-            return Results.StatusCode(500);
+            var sym = kv.Key; var id = kv.Value;
+            if (!doc.RootElement.TryGetProperty(id, out var el)) continue;
+            decimal price = 0m; double change = 0;
+            if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
+            if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
+            list.Add(new { Symbol = sym, Price = price, Change = change, IsUp = change >= 0 });
         }
+
+        // cache for short period to reduce repeated calls
+        cache.Set("coingecko_markets", list, new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20) });
+
+        return Results.Ok(list);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("CoinGecko fallback failed: " + ex.Message);
+        return Results.StatusCode(500);
     }
 });
 

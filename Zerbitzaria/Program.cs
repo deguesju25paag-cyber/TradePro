@@ -6,6 +6,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Zerbitzaria.Data;
 using Microsoft.Data.Sqlite;
 using Zerbitzaria.Models;
+using Microsoft.AspNetCore.SignalR;
+using Zerbitzaria.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,7 @@ builder.WebHost.UseUrls("http://localhost:5000");
 // Add services
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=zerbitzaria.db"));
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // Add HttpClient factory and background price updater service
 builder.Services.AddHttpClient();
@@ -186,19 +189,35 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
 // Get positions for a user
 app.MapGet("/api/users/{userId}/positions", async (ApplicationDbContext db, int userId) =>
 {
-    var positions = await db.Positions.Where(p => p.UserId == userId).ToListAsync();
-    return Results.Ok(positions);
+    try
+    {
+        var positions = await db.Positions.Where(p => p.UserId == userId).ToListAsync();
+        return Results.Ok(positions);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in /api/users/{userId}/positions: {ex}");
+        return Results.Json(new { message = "Error retrieving positions", details = ex.Message }, statusCode: 500);
+    }
 });
 
 // Get trades for a user
 app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId) =>
 {
-    var trades = await db.Trades.Where(t => t.UserId == userId).OrderByDescending(t => t.Timestamp).ToListAsync();
-    return Results.Ok(trades);
+    try
+    {
+        var trades = await db.Trades.Where(t => t.UserId == userId).OrderByDescending(t => t.Timestamp).ToListAsync();
+        return Results.Ok(trades);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in /api/users/{userId}/trades: {ex}");
+        return Results.Json(new { message = "Error retrieving trades", details = ex.Message }, statusCode: 500);
+    }
 });
 
 // Open a new trade for a user
-app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory) =>
+app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
     if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
@@ -270,6 +289,7 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
     };
 
     db.Trades.Add(trade);
+    await db.SaveChangesAsync();
 
     // Also create a Position record for the opened trade so dashboard shows it
     try
@@ -283,19 +303,26 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
             EntryPrice = entry,
             Quantity = quantity,
             IsOpen = true,
-            UserId = userId
+            UserId = userId,
+            TradeId = trade.Id
         };
         db.Positions.Add(position);
+        await db.SaveChangesAsync();
     }
     catch { }
 
-    await db.SaveChangesAsync();
+    try
+    {
+        // notify user group via SignalR about new position/trade
+        await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Opened", Symbol = trade.Symbol, Margin = trade.Margin, Leverage = trade.Leverage, TradeId = trade.Id });
+    }
+    catch { }
 
     return Results.Ok(trade);
 });
 
 // Close a trade
-app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory) =>
+app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var trade = await db.Trades.SingleOrDefaultAsync(t => t.Id == tradeId && t.UserId == userId);
     if (trade == null) return Results.NotFound(new { message = "Trade no encontrado" });
@@ -345,7 +372,7 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
     // mark matching open position as closed if exists
     try
     {
-        var pos = await db.Positions.FirstOrDefaultAsync(p => p.UserId == userId && p.Symbol == trade.Symbol && p.IsOpen);
+        var pos = await db.Positions.FirstOrDefaultAsync(p => p.UserId == userId && p.TradeId == trade.Id && p.IsOpen);
         if (pos != null)
         {
             pos.IsOpen = false;
@@ -361,6 +388,13 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
     }
 
     await db.SaveChangesAsync();
+
+    try
+    {
+        // notify user group via SignalR about closed position/trade
+        await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Closed", Symbol = trade.Symbol, TradeId = trade.Id, Pnl = pnl });
+    }
+    catch { }
 
     return Results.Ok(new { trade, currentPrice = current, pnl });
 });

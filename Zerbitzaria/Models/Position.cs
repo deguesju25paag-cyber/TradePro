@@ -17,5 +17,8 @@ namespace Zerbitzaria.Models
         // Whether the position is still open
         public bool IsOpen { get; set; } = true;
         public int UserId { get; set; }
+
+        // Link back to the Trade entity when created
+        public int? TradeId { get; set; }
     }
 }

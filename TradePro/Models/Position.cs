@@ -14,5 +14,8 @@ namespace TradePro.Models
         public decimal Quantity { get; set; }
         public bool IsOpen { get; set; } = true;
         public int UserId { get; set; }
+
+        // optional link to server trade id
+        public int? TradeId { get; set; }
     }
 }

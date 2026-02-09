@@ -302,3 +302,11 @@ C:\Users\danel\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\refint\Tr
 C:\Users\danel\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.pdb
 C:\Users\danel\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.genruntimeconfig.cache
 C:\Users\danel\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\ref\TradePro.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.Connections.Abstractions.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.Http.Connections.Client.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.Http.Connections.Common.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.SignalR.Client.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.SignalR.Client.Core.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.SignalR.Common.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.AspNetCore.SignalR.Protocols.Json.dll
+D:\reku\TradePro\TradePro\bin\Debug\net8.0-windows\Microsoft.Extensions.Features.dll

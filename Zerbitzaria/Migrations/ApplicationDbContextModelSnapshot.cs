@@ -104,6 +104,9 @@ namespace Zerbitzaria.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("TradeId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
@@ -211,7 +214,7 @@ namespace Zerbitzaria.Migrations
                         {
                             Id = 1,
                             Balance = 100000m,
-                            PasswordHash = "$2a$11$azzpzF.PYHypYS9DGAYIauUdUoipmUdciyQOmzNyMMsXwdU5wdTbe",
+                            PasswordHash = "$2a$11$bkpIc/TVZbycadhy9dXipeuSDHHR4nTtTStjCCvycpInOABf2pGT6",
                             Username = "admin"
                         });
                 });

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using TradePro.Models;
 using TradePro.Views;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace TradePro
 {
@@ -13,6 +14,7 @@ namespace TradePro
         private DashboardView? _dashboardView;
         private string? _currentUsername;
         private int? _currentUserId;
+        private HubConnection? _hubConnection;
 
         public WelcomeWindow(string username, decimal? balance = null, int? userId = null)
         {
@@ -34,8 +36,51 @@ namespace TradePro
             TopBarControl.StatisticsRequested += (s, e) => ShowStatisticsView();
             TopBarControl.ProfileRequested += (s, e) => ShowProfileView();
 
+            // Start SignalR connection to receive live updates
+            _ = InitSignalRAsync();
+
             // Show dashboard by default
             ShowDashboard(username);
+        }
+
+        private async Task InitSignalRAsync()
+        {
+            try
+            {
+                _hubConnection = new HubConnectionBuilder()
+                    .WithUrl("http://localhost:5000/updates")
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                _hubConnection.On<object>("PositionUpdated", async (payload) =>
+                {
+                    try
+                    {
+                        // If dashboard exists, refresh without recreating
+                        if (_dashboardView != null)
+                        {
+                            await _dashboardView.PopulateFromApiAsync(_currentUserId, _currentUsername);
+                        }
+                        else
+                        {
+                            // otherwise recreate dashboard
+                            Dispatcher.Invoke(() => ShowDashboard(_currentUsername));
+                        }
+                    }
+                    catch { }
+                });
+
+                await _hubConnection.StartAsync();
+
+                if (_currentUserId.HasValue)
+                {
+                    try { await _hubConnection.InvokeAsync("JoinGroup", _currentUserId.Value.ToString()); } catch { }
+                }
+            }
+            catch
+            {
+                // ignore connection failures - dashboard will fallback to polling
+            }
         }
 
         private void ShowDashboard(string? username)
@@ -79,7 +124,17 @@ namespace TradePro
             {
                 var md = new MarketDetailView();
                 // refresh dashboard when a new position is opened
-                md.PositionOpened += () => ShowDashboard(_currentUsername);
+                md.PositionOpened += async () =>
+                {
+                    if (_dashboardView != null)
+                    {
+                        await _dashboardView.PopulateFromApiAsync(_currentUserId, _currentUsername);
+                    }
+                    else
+                    {
+                        ShowDashboard(_currentUsername);
+                    }
+                };
                 MainContent.Content = md;
 
                 // populate details from server; pass current user id so opening trades is possible
@@ -94,7 +149,7 @@ namespace TradePro
             }
         }
 
-        // Minimal, deterministic dashboard population: show defaults/sample data so the UI is never empty
+        // Minimal, deterministic dashboard population: kept for fallback (not used normally)
         private Task PopulateDashboardAsync(DashboardView view, string? username)
         {
             // Resolve username
@@ -176,10 +231,10 @@ namespace TradePro
 
             var left = new StackPanel { Orientation = Orientation.Vertical };
             left.Children.Add(new TextBlock { Text = p.Symbol, Foreground = System.Windows.Media.Brushes.White, FontWeight = FontWeights.SemiBold });
-            left.Children.Add(new TextBlock { Text = $"{p.Side} x {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"{p.Side} • {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
 
             decimal estimated = 0m;
-            var market = markets.FirstOrDefault(m => m.Symbol == p.Symbol || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol)));
+            var market = markets.FirstOrDefault(m => string.Equals(m.Symbol, p.Symbol, System.StringComparison.OrdinalIgnoreCase) || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol, System.StringComparison.OrdinalIgnoreCase)));
             if (market != null) estimated = p.Margin * (decimal)(market.Change / 100.0);
 
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };

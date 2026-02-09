@@ -37,6 +37,11 @@ namespace TradePro.Views
 
         private int _backoffSeconds = 0; // dynamic backoff when rate limited
 
+        // store last known markets and user context for periodic updates
+        private List<Market> _lastMarkets = new List<Market>();
+        private int? _currentUserId;
+        private string? _currentUsername;
+
         static DashboardView()
         {
             try { _cg.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProClient/1.0"); } catch { }
@@ -53,9 +58,56 @@ namespace TradePro.Views
             StopRealtimeUpdates();
         }
 
-        // Populate dashboard by fetching markets from the server API. Starts a 15s refresh timer only if we have data.
+        // Helper: do a GET with timeout and return HttpResponseMessage or null
+        private async Task<HttpResponseMessage?> SafeGetAsync(string url, int timeoutSeconds = 4)
+        {
+            try
+            {
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                return await _http.GetAsync(url, cts.Token);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Render initial placeholder assets immediately so UI isn't empty
+        private void RenderInitialAssetPlaceholders(Panel? assetsGrid)
+        {
+            var initial = new[] { "BTC", "ETH", "SOL", "XRP", "DOGE", "ADA" };
+            _cardMap.Clear();
+            if (assetsGrid == null) return;
+            assetsGrid.Children.Clear();
+            foreach (var s in initial)
+            {
+                var card = new Border
+                {
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    Padding = new Thickness(8),
+                    Margin = new Thickness(6),
+                    Cursor = Cursors.Hand
+                };
+                var sp = new StackPanel();
+                var symbolTb = new TextBlock { Text = s + "USD", Foreground = Brushes.White, FontWeight = FontWeights.SemiBold };
+                var priceTb = new TextBlock { Text = "--", Foreground = Brushes.LightGray, FontSize = 14 };
+                var changeTb = new TextBlock { Text = string.Empty, Foreground = Brushes.LightGray, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 6, 0, 0) };
+                sp.Children.Add(symbolTb);
+                sp.Children.Add(priceTb);
+                sp.Children.Add(changeTb);
+                card.Child = sp;
+                card.MouseLeftButtonUp += (s2, e) => AssetClicked?.Invoke(s);
+                assetsGrid.Children.Add(card);
+                _cardMap[s] = (priceTb, changeTb);
+            }
+        }
+
+        // Populate dashboard by fetching markets and positions concurrently
         public async Task PopulateFromApiAsync(int? userId = null, string? username = null)
         {
+            _currentUserId = userId;
+            _currentUsername = username;
+
             // Find controls
             var welcomeText = this.FindName("WelcomeText") as TextBlock;
             var userBalText = this.FindName("UserBalanceText") as TextBlock;
@@ -70,63 +122,99 @@ namespace TradePro.Views
                 welcomeText.Text = !string.IsNullOrEmpty(username) ? $"Bienvenido, {username}" : "Bienvenido";
             }
 
-            decimal balance = 100000m;
+            // Quickly render placeholders and start live price fetch immediately
+            RenderInitialAssetPlaceholders(assetsGrid);
+            _ = UpdatePricesFromCoinGeckoAsync();
+
+            // Start parallel fetches with short timeouts
+            var marketTask = SafeGetAsync("/api/markets", 3);
+            Task<HttpResponseMessage?> posTask = Task.FromResult<HttpResponseMessage?>(null);
+            Task<HttpResponseMessage?> userTask = Task.FromResult<HttpResponseMessage?>(null);
+            if (userId.HasValue)
+            {
+                posTask = SafeGetAsync($"/api/users/{userId.Value}/positions", 3);
+                userTask = SafeGetAsync($"/api/users/{userId.Value}", 3);
+            }
+
             List<Market> markets = new();
             List<Position> positions = new();
-            bool marketsFromLiveSource = false;
+            decimal balance = 100000m;
 
-            // If we have a logged user, try fetch positions and profile first (always try server when userId provided)
+            // Await market task
+            try
+            {
+                var mResp = await marketTask;
+                if (mResp != null && mResp.IsSuccessStatusCode)
+                {
+                    var stream = await mResp.Content.ReadAsStreamAsync();
+                    var list = await JsonSerializer.DeserializeAsync<List<Market>>(stream, _json_options);
+                    if (list != null && list.Count > 0)
+                    {
+                        markets = list;
+                    }
+                    else
+                    {
+                        if (dashboardStatus != null) dashboardStatus.Text = "No se obtuvieron mercados desde el servidor.";
+                    }
+                }
+                else
+                {
+                    if (mResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obtener mercados: " + mResp.StatusCode.ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (dashboardStatus != null) dashboardStatus.Text = "Error fetching markets: " + ex.Message;
+            }
+
+            // Await positions and user profile
             if (userId.HasValue)
             {
                 try
                 {
-                    var respPos = await _http.GetAsync($"/api/users/{userId.Value}/positions");
-                    if (respPos.IsSuccessStatusCode)
+                    var pResp = await posTask;
+                    if (pResp != null && pResp.IsSuccessStatusCode)
                     {
-                        var stream = await respPos.Content.ReadAsStreamAsync();
+                        var stream = await pResp.Content.ReadAsStreamAsync();
                         var list = await JsonSerializer.DeserializeAsync<List<Position>>(stream, _json_options);
-                        if (list != null) positions = list.Where(p => p.IsOpen).ToList(); // only open positions
+                        if (list != null) positions = list.Where(p => p.IsOpen).ToList();
+                        else if (dashboardStatus != null) dashboardStatus.Text = "No se pudieron deserializar posiciones recibidas.";
                     }
-
-                    var respUser = await _http.GetAsync($"/api/users/{userId.Value}");
-                    if (respUser.IsSuccessStatusCode)
+                    else
                     {
-                        var docStream = await respUser.Content.ReadAsStreamAsync();
+                        if (pResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obtener posiciones: " + pResp.StatusCode.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (dashboardStatus != null) dashboardStatus.Text = "Error fetching positions: " + ex.Message;
+                }
+
+                try
+                {
+                    var uResp = await userTask;
+                    if (uResp != null && uResp.IsSuccessStatusCode)
+                    {
+                        var docStream = await uResp.Content.ReadAsStreamAsync();
                         using var doc = await JsonDocument.ParseAsync(docStream);
                         if (doc.RootElement.TryGetProperty("balance", out var balEl) && balEl.TryGetDecimal(out var bal))
                         {
                             balance = bal;
                         }
                     }
-                }
-                catch
-                {
-                    // ignore server-side position/profile errors and fallback to local DB later
-                }
-            }
-
-            // Try get markets from server API
-            try
-            {
-                var resp = await _http.GetAsync("/api/markets");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var stream = await resp.Content.ReadAsStreamAsync();
-                    var list = await JsonSerializer.DeserializeAsync<List<Market>>(stream, _json_options);
-                    if (list != null && list.Count > 0)
+                    else
                     {
-                        markets = list;
-                        marketsFromLiveSource = true; // server provided values (likely live)
+                        if (uResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obtener perfil usuario: " + uResp.StatusCode.ToString();
                     }
                 }
-            }
-            catch
-            {
-                // ignore network errors and fallback to other sources
+                catch (Exception ex)
+                {
+                    if (dashboardStatus != null) dashboardStatus.Text = "Error fetching user: " + ex.Message;
+                }
             }
 
-            // If server didn't provide markets, fallback to local DB (symbols only)
-            if ((markets == null || markets.Count == 0))
+            // If no server markets, try local DB quickly
+            if (markets.Count == 0)
             {
                 try
                 {
@@ -136,162 +224,59 @@ namespace TradePro.Views
                         var dbMarkets = db.Markets.OrderBy(m => m.Symbol).ToList();
                         if (dbMarkets != null && dbMarkets.Count > 0)
                         {
-                            // Use symbols from DB but mark as not live: display placeholders until live prices fetched
-                            markets = dbMarkets.Select(m => new Market { Symbol = m.Symbol, Price = 0m, Change = 0, IsUp = false }).ToList();
-                            marketsFromLiveSource = false;
+                            markets = dbMarkets.Select(m => new Market { Symbol = m.Symbol, Price = m.Price, Change = m.Change, IsUp = m.IsUp }).ToList();
                         }
 
-                        // If we didn't already retrieve positions from server, try local DB for positions
                         if (!userId.HasValue || positions.Count == 0)
                         {
                             Models.User? user = null;
-                            if (userId.HasValue)
-                            {
-                                user = db.Users.SingleOrDefault(u => u.Id == userId.Value);
-                            }
-                            else if (!string.IsNullOrEmpty(username))
-                            {
-                                user = db.Users.SingleOrDefault(u => u.Username == username);
-                            }
-
+                            if (userId.HasValue) user = db.Users.SingleOrDefault(u => u.Id == userId.Value);
+                            else if (!string.IsNullOrEmpty(username)) user = db.Users.SingleOrDefault(u => u.Username == username);
                             if (user != null)
                             {
                                 balance = user.Balance;
-                                if (positions.Count == 0)
-                                {
-                                    positions = db.Positions.Where(p => p.UserId == user.Id && p.IsOpen).ToList();
-                                }
+                                if (positions.Count == 0) positions = db.Positions.Where(p => p.UserId == user.Id && p.IsOpen).ToList();
                             }
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignore
+                    if (dashboardStatus != null) dashboardStatus.Text = "Error reading local DB: " + ex.Message;
                 }
             }
 
-            // If still no markets, try CoinGecko directly
-            if ((markets == null || markets.Count == 0))
+            // Update last markets and build cards if markets available
+            if (markets.Count > 0)
             {
-                try
+                _lastMarkets = markets.ToList();
+                // rebuild cards based on markets (top 6)
+                _cardMap.Clear();
+                if (assetsGrid != null)
                 {
-                    var ids = string.Join(",", _symbolToId.Values.Distinct());
-                    var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
-                    using var resp = await _cg.GetAsync(url);
-                    if (resp.IsSuccessStatusCode)
+                    assetsGrid.Children.Clear();
+                    foreach (var m in markets.Take(6))
                     {
-                        using var stream = await resp.Content.ReadAsStreamAsync();
-                        using var doc = await JsonDocument.ParseAsync(stream);
-                        var list = new List<Market>();
-                        foreach (var kv in _symbolToId)
-                        {
-                            var sym = kv.Key; var id = kv.Value;
-                            if (!doc.RootElement.TryGetProperty(id, out var el)) continue;
-                            decimal price = 0m; double change = 0;
-                            if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
-                            if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
-                            list.Add(new Market(sym, price, change, change >= 0));
-                        }
-
-                        if (list.Count > 0)
-                        {
-                            markets = list;
-                            marketsFromLiveSource = true; // live source
-                        }
+                        var card = new Border { Background = Brushes.Transparent, Padding = new Thickness(8), Margin = new Thickness(6), Cursor = Cursors.Hand };
+                        var sp = new StackPanel();
+                        var symbolTb = new TextBlock { Text = m.Symbol + "USD", Foreground = Brushes.White, FontWeight = FontWeights.SemiBold };
+                        var priceTb = new TextBlock { Text = m.Price.ToString("C"), Foreground = Brushes.LightGray, FontSize = 14 };
+                        var changeTb = new TextBlock { Text = (m.Change >= 0 ? "+" : "") + m.Change.ToString("0.##") + "%", Foreground = m.Change >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 6, 0, 0) };
+                        sp.Children.Add(symbolTb);
+                        sp.Children.Add(priceTb);
+                        sp.Children.Add(changeTb);
+                        card.Child = sp;
+                        card.MouseLeftButtonUp += (s, e) => AssetClicked?.Invoke(m.Symbol);
+                        assetsGrid.Children.Add(card);
+                        _cardMap[m.Symbol] = (priceTb, changeTb);
                     }
                 }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            // If still no markets, show status and don't render fake data
-            if (markets == null || markets.Count == 0)
-            {
-                if (dashboardStatus != null)
-                {
-                    dashboardStatus.Text = "No se han podido obtener precios. Intente más tarde.";
-                    dashboardStatus.Visibility = Visibility.Visible;
-                }
-
-                // clear assets area
-                assetsGrid?.Dispatcher.Invoke(() => assetsGrid.Children.Clear());
-
-                // update balance and positions UI (positions may be empty)
-                if (userBalText != null) userBalText.Text = balance.ToString("C");
-                if (positionsStack != null && openCountText != null && positionsEmpty != null)
-                {
-                    positionsStack.Children.Clear();
-                    openCountText.Text = $"Posiciones: {positions.Count}";
-                    positionsEmpty.Visibility = Visibility.Visible;
-                }
-
-                // do not start timer when we have no cards to update
-                return;
             }
 
             // Update balance UI
-            if (userBalText != null)
-            {
-                userBalText.Text = balance.ToString("C");
-            }
+            if (userBalText != null) userBalText.Text = balance.ToString("C");
 
-            // Build asset cards and keep references for live updates
-            _cardMap.Clear();
-            if (assetsGrid != null)
-            {
-                assetsGrid.Children.Clear();
-                foreach (var m in markets.Take(6))
-                {
-                    var card = new Border
-                    {
-                        Background = System.Windows.Media.Brushes.Transparent,
-                        Padding = new Thickness(8),
-                        Margin = new Thickness(6),
-                        Cursor = Cursors.Hand
-                    };
-
-                    var sp = new StackPanel();
-
-                    var symbolTb = new TextBlock
-                    {
-                        Text = m.Symbol + "USD",
-                        Foreground = Brushes.White,
-                        FontWeight = FontWeights.SemiBold
-                    };
-                    var priceTb = new TextBlock
-                    {
-                        // always show placeholder until live price fetched
-                        Text = "—",
-                        Foreground = Brushes.LightGray,
-                        FontSize = 14
-                    };
-                    var changeTb = new TextBlock
-                    {
-                        Text = string.Empty,
-                        Foreground = Brushes.LightGray,
-                        FontWeight = FontWeights.Bold,
-                        Margin = new Thickness(0, 6, 0, 0)
-                    };
-
-                    sp.Children.Add(symbolTb);
-                    sp.Children.Add(priceTb);
-                    sp.Children.Add(changeTb);
-                    card.Child = sp;
-
-                    // attach click handler
-                    card.MouseLeftButtonUp += (s, e) => AssetClicked?.Invoke(m.Symbol);
-
-                    assetsGrid.Children.Add(card);
-
-                    // store references for updating
-                    _cardMap[m.Symbol] = (priceTb, changeTb);
-                }
-            }
-
-            // Populate positions list (only open positions)
+            // Populate positions UI
             if (positionsStack != null && openCountText != null && positionsEmpty != null)
             {
                 positionsStack.Children.Clear();
@@ -306,42 +291,107 @@ namespace TradePro.Views
                     positionsEmpty.Visibility = Visibility.Collapsed;
                     foreach (var p in openPositions)
                     {
-                        positionsStack.Children.Add(CreatePositionElement(p, markets));
+                        positionsStack.Children.Add(CreatePositionElement(p, markets.Count > 0 ? markets : _lastMarkets));
                     }
                 }
             }
 
             if (dashboardStatus != null)
             {
-                dashboardStatus.Text = string.Empty;
-                dashboardStatus.Visibility = Visibility.Collapsed;
-            }
-
-            // If markets were not live, request live prices immediately and show status while fetching
-            if (!marketsFromLiveSource)
-            {
-                if (dashboardStatus != null)
+                if (string.IsNullOrEmpty(dashboardStatus.Text))
                 {
-                    dashboardStatus.Text = "Obteniendo precios en vivo...";
-                    dashboardStatus.Visibility = Visibility.Visible;
-                }
-
-                var ok = await UpdatePricesFromCoinGeckoAsync();
-                if (dashboardStatus != null)
-                {
+                    dashboardStatus.Text = string.Empty;
                     dashboardStatus.Visibility = Visibility.Collapsed;
                 }
-
-                // if failed, keep placeholders and show message
-                if (!ok && dashboardStatus != null)
+                else
                 {
-                    dashboardStatus.Text = "No se pudieron obtener precios en vivo.";
                     dashboardStatus.Visibility = Visibility.Visible;
                 }
             }
 
-            // start updates every 15 seconds by default
-            StartRealtimeUpdates(TimeSpan.FromSeconds(15));
+            // Kick off immediate live price update
+            _ = UpdatePricesFromCoinGeckoAsync();
+
+            // start updates every 3 seconds (fast refresh)
+            StartRealtimeUpdates(TimeSpan.FromSeconds(3));
+        }
+
+        // Periodically refresh positions from server/local DB
+        private async Task RefreshPositionsFromServerAsync()
+        {
+            if (_currentUserId == null && TradePro.App.DbContext == null) return;
+
+            List<Position> positions = new();
+
+            if (_currentUserId.HasValue)
+            {
+                try
+                {
+                    var resp = await _http.GetAsync($"/api/users/{_currentUserId.Value}/positions");
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        var stream = await resp.Content.ReadAsStreamAsync();
+                        var list = await JsonSerializer.DeserializeAsync<List<Position>>(stream, _json_options);
+                        if (list != null) positions = list.Where(p => p.IsOpen).ToList();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            // fallback to local DB if no server positions or no user id
+            if ((positions == null || positions.Count == 0) && TradePro.App.DbContext != null)
+            {
+                try
+                {
+                    var db = TradePro.App.DbContext;
+                    var user = db.Users.FirstOrDefault();
+                    if (user != null)
+                    {
+                        positions = db.Positions.Where(p => p.UserId == user.Id && p.IsOpen).ToList();
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            // update UI on dispatcher
+            try
+            {
+                var positionsStack = this.FindName("PositionsStack") as StackPanel;
+                var openCountText = this.FindName("OpenPositionsCountText") as TextBlock;
+                var positionsEmpty = this.FindName("PositionsEmptyText") as TextBlock;
+
+                if (positionsStack != null && openCountText != null && positionsEmpty != null)
+                {
+                    positionsStack.Dispatcher.Invoke(() =>
+                    {
+                        positionsStack.Children.Clear();
+                        var openPositions = positions.Where(p => p.IsOpen).ToList();
+                        openCountText.Text = $"Posiciones: {openPositions.Count}";
+                        if (openPositions.Count == 0)
+                        {
+                            positionsEmpty.Visibility = Visibility.Visible;
+                        }
+                        else
+                        {
+                            positionsEmpty.Visibility = Visibility.Collapsed;
+                            foreach (var p in openPositions)
+                            {
+                                positionsStack.Children.Add(CreatePositionElement(p, _lastMarkets));
+                            }
+                        }
+                    });
+                }
+            }
+            catch
+            {
+                // ignore UI errors
+            }
         }
 
         private UIElement CreatePositionElement(Position p, List<Market> markets)
@@ -357,11 +407,63 @@ namespace TradePro.Views
 
             decimal estimated = 0m;
             var market = markets.FirstOrDefault(m => string.Equals(m.Symbol, p.Symbol, StringComparison.OrdinalIgnoreCase) || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol, StringComparison.OrdinalIgnoreCase)));
-            if (market != null) estimated = p.Margin * (decimal)(market.Change / 100.0);
+            decimal currentPrice = 0m;
+            double changePct = 0;
+            if (market != null)
+            {
+                estimated = p.Margin * (decimal)(market.Change / 100.0);
+                currentPrice = market.Price;
+                changePct = market.Change;
+            }
+
+            // compute pnl for display
+            decimal pnl = 0m;
+            if (p.IsOpen && p.EntryPrice > 0 && p.Quantity > 0)
+            {
+                if (string.Equals(p.Side, "LONG", StringComparison.OrdinalIgnoreCase)) pnl = (currentPrice - p.EntryPrice) * p.Quantity;
+                else pnl = (p.EntryPrice - currentPrice) * p.Quantity;
+            }
 
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
-            right.Children.Add(new TextBlock { Text = (estimated >= 0 ? "+" : "") + estimated.ToString("C"), Foreground = estimated >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right });
+            var pnlTb = new TextBlock { Text = (pnl >= 0 ? "+" : "") + pnl.ToString("C"), Foreground = pnl >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right };
+            right.Children.Add(pnlTb);
+            right.Children.Add(new TextBlock { Text = $"Exposure: {(p.Margin * p.Leverage).ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
             right.Children.Add(new TextBlock { Text = $"Margin: {p.Margin.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+
+            // add close button if trade id available
+            if (p.TradeId.HasValue)
+            {
+                var closeBtn = new Button { Content = "Cerrar", Padding = new Thickness(6,2,6,2), Margin = new Thickness(0,6,0,0) };
+                closeBtn.Click += async (s, e) =>
+                {
+                    try
+                    {
+                        closeBtn.IsEnabled = false;
+                        var resp = await _http.PostAsync($"/api/users/{p.UserId}/trades/{p.TradeId.Value}/close", null);
+                        if (resp.IsSuccessStatusCode)
+                        {
+                            // refresh positions immediately
+                            await RefreshPositionsFromServerAsync();
+                        }
+                        else
+                        {
+                            var body = string.Empty;
+                            try { body = await resp.Content.ReadAsStringAsync(); } catch { }
+                            MessageBox.Show("Error cerrando trade: " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                    finally
+                    {
+                        closeBtn.IsEnabled = true;
+                    }
+                };
+
+                right.Children.Add(closeBtn);
+            }
 
             grid.Children.Add(left);
             grid.Children.Add(right);
@@ -386,6 +488,8 @@ namespace TradePro.Views
                     await RefreshMarketsFromServerAsync();
                     // Always try CoinGecko after server refresh; handle 429 inside
                     await UpdatePricesFromCoinGeckoAsync();
+                    // Refresh positions so opened/closed trades appear quickly
+                    await RefreshPositionsFromServerAsync();
                 }
                 catch
                 {
@@ -459,7 +563,7 @@ namespace TradePro.Views
 
                 // success -> reset backoff and ensure base interval
                 _backoffSeconds = 0;
-                if (_updateTimer != null) _updateTimer.Interval = TimeSpan.FromSeconds(15);
+                if (_updateTimer != null) _updateTimer.Interval = TimeSpan.FromSeconds(3);
 
                 using var stream = await resp.Content.ReadAsStreamAsync();
                 using var doc = await JsonDocument.ParseAsync(stream);

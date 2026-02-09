@@ -75,6 +75,36 @@ namespace TradePro.Views
             List<Position> positions = new();
             bool marketsFromLiveSource = false;
 
+            // If we have a logged user, try fetch positions and profile first (always try server when userId provided)
+            if (userId.HasValue)
+            {
+                try
+                {
+                    var respPos = await _http.GetAsync($"/api/users/{userId.Value}/positions");
+                    if (respPos.IsSuccessStatusCode)
+                    {
+                        var stream = await respPos.Content.ReadAsStreamAsync();
+                        var list = await JsonSerializer.DeserializeAsync<List<Position>>(stream, _json_options);
+                        if (list != null) positions = list.Where(p => p.IsOpen).ToList(); // only open positions
+                    }
+
+                    var respUser = await _http.GetAsync($"/api/users/{userId.Value}");
+                    if (respUser.IsSuccessStatusCode)
+                    {
+                        var docStream = await respUser.Content.ReadAsStreamAsync();
+                        using var doc = await JsonDocument.ParseAsync(docStream);
+                        if (doc.RootElement.TryGetProperty("balance", out var balEl) && balEl.TryGetDecimal(out var bal))
+                        {
+                            balance = bal;
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore server-side position/profile errors and fallback to local DB later
+                }
+            }
+
             // Try get markets from server API
             try
             {
@@ -111,21 +141,27 @@ namespace TradePro.Views
                             marketsFromLiveSource = false;
                         }
 
-                        // resolve user for balance and positions
-                        Models.User? user = null;
-                        if (userId.HasValue)
+                        // If we didn't already retrieve positions from server, try local DB for positions
+                        if (!userId.HasValue || positions.Count == 0)
                         {
-                            user = db.Users.SingleOrDefault(u => u.Id == userId.Value);
-                        }
-                        else if (!string.IsNullOrEmpty(username))
-                        {
-                            user = db.Users.SingleOrDefault(u => u.Username == username);
-                        }
+                            Models.User? user = null;
+                            if (userId.HasValue)
+                            {
+                                user = db.Users.SingleOrDefault(u => u.Id == userId.Value);
+                            }
+                            else if (!string.IsNullOrEmpty(username))
+                            {
+                                user = db.Users.SingleOrDefault(u => u.Username == username);
+                            }
 
-                        if (user != null)
-                        {
-                            balance = user.Balance;
-                            positions = db.Positions.Where(p => p.UserId == user.Id).ToList();
+                            if (user != null)
+                            {
+                                balance = user.Balance;
+                                if (positions.Count == 0)
+                                {
+                                    positions = db.Positions.Where(p => p.UserId == user.Id && p.IsOpen).ToList();
+                                }
+                            }
                         }
                     }
                 }
@@ -255,19 +291,20 @@ namespace TradePro.Views
                 }
             }
 
-            // Populate positions list
+            // Populate positions list (only open positions)
             if (positionsStack != null && openCountText != null && positionsEmpty != null)
             {
                 positionsStack.Children.Clear();
-                openCountText.Text = $"Posiciones: {positions.Count}";
-                if (positions.Count == 0)
+                var openPositions = positions.Where(p => p.IsOpen).ToList();
+                openCountText.Text = $"Posiciones: {openPositions.Count}";
+                if (openPositions.Count == 0)
                 {
                     positionsEmpty.Visibility = Visibility.Visible;
                 }
                 else
                 {
                     positionsEmpty.Visibility = Visibility.Collapsed;
-                    foreach (var p in positions)
+                    foreach (var p in openPositions)
                     {
                         positionsStack.Children.Add(CreatePositionElement(p, markets));
                     }
@@ -319,6 +356,8 @@ namespace TradePro.Views
             left.Children.Add(new TextBlock { Text = $"{p.Side} • {p.Leverage}x", Foreground = Brushes.LightGray, FontSize = 12 });
 
             decimal estimated = 0m;
+            var market = markets.FirstOrDefault(m => string.Equals(m.Symbol, p.Symbol, StringComparison.OrdinalIgnoreCase) || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol, StringComparison.OrdinalIgnoreCase)));
+            if (market != null) estimated = p.Margin * (decimal)(market.Change / 100.0);
 
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
             right.Children.Add(new TextBlock { Text = (estimated >= 0 ? "+" : "") + estimated.ToString("C"), Foreground = estimated >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right });

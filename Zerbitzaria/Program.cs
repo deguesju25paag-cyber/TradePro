@@ -24,16 +24,20 @@ builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
 
 var app = builder.Build();
 
-// Helper to ensure DB exists and seed minimal data if needed
-async Task EnsureDatabaseReadyAsync()
+// Helper to ensure DB migrations are applied and seed minimal data if needed
+async Task ApplyMigrationsAndSeedAsync()
 {
     using var s = app.Services.CreateScope();
     var d = s.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        await d.Database.EnsureCreatedAsync();
+        // Apply pending migrations (preferred when migrations exist)
+        await d.Database.MigrateAsync();
     }
-    catch { }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Migration apply failed: " + ex.Message);
+    }
 
     try
     {
@@ -55,13 +59,13 @@ async Task EnsureDatabaseReadyAsync()
             d.SaveChanges();
         }
     }
-    catch (Exception ex) { Console.WriteLine("EnsureDatabaseReadyAsync seed error: " + ex.Message); }
+    catch (Exception ex) { Console.WriteLine("Seed error: " + ex.Message); }
 }
 
 // Ensure DB is ready and seeded
 try
 {
-    EnsureDatabaseReadyAsync().GetAwaiter().GetResult();
+    ApplyMigrationsAndSeedAsync().GetAwaiter().GetResult();
 }
 catch (Exception ex)
 {
@@ -196,7 +200,6 @@ app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int use
 // Open a new trade for a user
 app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory) =>
 {
-    try { await db.Database.EnsureCreatedAsync(); } catch { }
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
     if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
 
@@ -267,6 +270,25 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
     };
 
     db.Trades.Add(trade);
+
+    // Also create a Position record for the opened trade so dashboard shows it
+    try
+    {
+        var position = new Zerbitzaria.Models.Position
+        {
+            Symbol = dto.Symbol,
+            Side = dto.Side,
+            Leverage = dto.Leverage,
+            Margin = dto.Margin,
+            EntryPrice = entry,
+            Quantity = quantity,
+            IsOpen = true,
+            UserId = userId
+        };
+        db.Positions.Add(position);
+    }
+    catch { }
+
     await db.SaveChangesAsync();
 
     return Results.Ok(trade);
@@ -275,7 +297,6 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
 // Close a trade
 app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory) =>
 {
-    try { await db.Database.EnsureCreatedAsync(); } catch { }
     var trade = await db.Trades.SingleOrDefaultAsync(t => t.Id == tradeId && t.UserId == userId);
     if (trade == null) return Results.NotFound(new { message = "Trade no encontrado" });
     if (!trade.IsOpen) return Results.BadRequest(new { message = "Trade ya cerrado" });
@@ -320,6 +341,17 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
 
     trade.Pnl = pnl;
     trade.IsOpen = false;
+
+    // mark matching open position as closed if exists
+    try
+    {
+        var pos = await db.Positions.FirstOrDefaultAsync(p => p.UserId == userId && p.Symbol == trade.Symbol && p.IsOpen);
+        if (pos != null)
+        {
+            pos.IsOpen = false;
+        }
+    }
+    catch { }
 
     // release margin + pnl to user balance
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);

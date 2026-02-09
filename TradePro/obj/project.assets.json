@@ -2720,23 +2720,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\danel\\.nuget\\packages\\": {},
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
+      "projectUniqueName": "D:\\reku\\TradePro\\TradePro\\TradePro.csproj",
       "projectName": "TradePro",
-      "projectPath": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
-      "packagesPath": "C:\\Users\\danel\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\obj\\",
+      "projectPath": "D:\\reku\\TradePro\\TradePro\\TradePro.csproj",
+      "packagesPath": "C:\\Users\\ik012982i18\\.nuget\\packages\\",
+      "outputPath": "D:\\reku\\TradePro\\TradePro\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\danel\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\ik012982i18\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -2763,7 +2763,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -2811,7 +2811,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

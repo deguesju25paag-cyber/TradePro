@@ -28,7 +28,7 @@
             <!-- Balance box -->
             <Border Grid.Column="0" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,12,0">
                 <StackPanel>
-                    <TextBlock Text="Saldo disponible" Foreground="#BDBDBD" FontSize="12" />
+                    <TextBlock Text="Balance total" Foreground="#BDBDBD" FontSize="12" />
                     <TextBlock x:Name="UserBalanceText" Text="$0.00" Foreground="White" FontSize="26" FontWeight="Bold" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
@@ -53,7 +53,23 @@
                     <TextBlock x:Name="OpenPositionsCountText" Text="Posiciones: 0" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Right" DockPanel.Dock="Right" />
                 </DockPanel>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                <!-- Header row for columns -->
+                <Grid Margin="0,10,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Activo" Foreground="#AAAAAA" Grid.Column="0" />
+                    <TextBlock Text="Exposure" Foreground="#AAAAAA" Grid.Column="1" HorizontalAlignment="Right" />
+                    <TextBlock Text="Margin" Foreground="#AAAAAA" Grid.Column="2" HorizontalAlignment="Right" />
+                    <TextBlock Text="PnL" Foreground="#AAAAAA" Grid.Column="3" HorizontalAlignment="Right" />
+                    <TextBlock Text="Acciones" Foreground="#AAAAAA" Grid.Column="4" HorizontalAlignment="Right" />
+                </Grid>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
                     <StackPanel x:Name="PositionsStack" />
                 </ScrollViewer>
 

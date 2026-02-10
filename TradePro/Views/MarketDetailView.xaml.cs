@@ -64,7 +64,7 @@ namespace TradePro.Views
             if (AmountSlider != null && AmountText != null)
                 AmountText.Text = AmountSlider.Value.ToString("C");
 
-            // Try set amount slider max to user's balance
+            // Try set amount slider max to user's balance from local DB (fallback)
             try
             {
                 var db = App.DbContext;
@@ -99,6 +99,47 @@ namespace TradePro.Views
             try
             {
                 SymbolText.Text = symbol;
+
+                // If we have a server user id, prefer fetching the available balance from server
+                if (_currentUserId.HasValue)
+                {
+                    try
+                    {
+                        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(4));
+                        var resp = await _http.GetAsync($"/api/users/{_currentUserId.Value}", cts.Token);
+                        if (resp.IsSuccessStatusCode)
+                        {
+                            using var stream = await resp.Content.ReadAsStreamAsync(cts.Token);
+                            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cts.Token);
+                            if (doc.RootElement.TryGetProperty("balance", out var balEl) && balEl.TryGetDecimal(out var bal))
+                            {
+                                _userBalance = bal;
+                                // update UI safely
+                                if (AmountSlider != null)
+                                {
+                                    AmountSlider.Dispatcher.Invoke(() =>
+                                    {
+                                        AmountSlider.Maximum = (double)_userBalance;
+                                        // keep current value within new max; default to 1% of balance if previous value was default small number
+                                        if (AmountSlider.Value <= 0)
+                                            AmountSlider.Value = Math.Round((double)_userBalance * 0.01, 2);
+                                        else
+                                            AmountSlider.Value = Math.Min(AmountSlider.Value, AmountSlider.Maximum);
+                                    });
+                                }
+
+                                if (BalanceText != null)
+                                {
+                                    BalanceText.Dispatcher.Invoke(() => BalanceText.Text = $"(Balance: {_userBalance:C})");
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore network errors and fallback to local DB if available
+                    }
+                }
 
                 // Try fetch price from server first with short timeout
                 try

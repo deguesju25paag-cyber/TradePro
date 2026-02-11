@@ -69,7 +69,7 @@ namespace TradePro.Views
                                 longsOpen = opened.Count(t => string.Equals(t.Side, "LONG", StringComparison.OrdinalIgnoreCase));
                                 shortsOpen = opened.Count(t => string.Equals(t.Side, "SHORT", StringComparison.OrdinalIgnoreCase));
                                 winRate = closed.Count > 0 ? (double)closed.Count(t => t.Pnl > 0) / closed.Count * 100.0 : 0;
-                                monthlyVolume = closed.Where(t => t.Timestamp > DateTime.UtcNow.AddMonths(-1)).Sum(t => t.Margin + Math.Abs(t.Pnl));
+                                monthlyVolume = closed.Where(t => t.Timestamp > DateTime.UtcNow.AddMonths(-1)).Sum(t => t.Margin * t.Leverage);
                                 dailyPnl = closed.Where(t => t.Timestamp > DateTime.UtcNow.Date).Sum(t => t.Pnl);
 
                                 // roi: (realized pnl) / initial equity approximation
@@ -101,7 +101,7 @@ namespace TradePro.Views
                             longsOpen = opened.Count(t => string.Equals(t.Side, "LONG", StringComparison.OrdinalIgnoreCase));
                             shortsOpen = opened.Count(t => string.Equals(t.Side, "SHORT", StringComparison.OrdinalIgnoreCase));
                             winRate = closed.Count > 0 ? (double)closed.Count(t => t.Pnl > 0) / closed.Count * 100.0 : 0;
-                            monthlyVolume = closed.Where(t => t.Timestamp > DateTime.UtcNow.AddMonths(-1)).Sum(t => t.Margin + Math.Abs(t.Pnl));
+                            monthlyVolume = closed.Where(t => t.Timestamp > DateTime.UtcNow.AddMonths(-1)).Sum(t => t.Margin * t.Leverage);
                             dailyPnl = closed.Where(t => t.Timestamp > DateTime.UtcNow.Date).Sum(t => t.Pnl);
                             var realized = closed.Sum(t => t.Pnl);
                             roi = user.Balance == 0 ? 0 : realized / user.Balance * 100m;

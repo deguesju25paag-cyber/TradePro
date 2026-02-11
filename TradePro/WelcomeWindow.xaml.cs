@@ -66,6 +66,19 @@ namespace TradePro
                             // otherwise recreate dashboard
                             Dispatcher.Invoke(() => ShowDashboard(_currentUsername));
                         }
+
+                        // Also refresh history view if currently visible
+                        try
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (MainContent.Content is TradePro.Views.HistoryView hv)
+                                {
+                                    hv.SetUserId(_currentUserId);
+                                }
+                            });
+                        }
+                        catch { }
                     }
                     catch { }
                 });
@@ -257,7 +270,7 @@ namespace TradePro
             MainContent.Content = tv;
         }
         private void ShowPortfolioView() { MainContent.Content = new PortfolioView(); }
-        private void ShowHistoryView() { MainContent.Content = new HistoryView(); }
+        private void ShowHistoryView() { var hv = new HistoryView(); hv.SetUserId(_currentUserId); MainContent.Content = hv; }
         private void ShowStatisticsView() { MainContent.Content = new StatisticsView(); }
         private void ShowProfileView() { MainContent.Content = new ProfileView(); }
 

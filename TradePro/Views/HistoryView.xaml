@@ -3,15 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="#0E0F10">
         <StackPanel Margin="24">
-            <TextBlock Text="History" Foreground="White" FontSize="22" FontWeight="Bold" />
-            <TextBlock Text="Historial de operaciones" Foreground="#BDBDBD" Margin="0,6,0,12" />
+            <TextBlock Text="Historial de trades" Foreground="White" FontSize="22" FontWeight="Bold" />
+            <TextBlock Text="Registros de operaciones cerradas y abiertas" Foreground="#BDBDBD" Margin="0,6,0,12" />
 
             <Border Background="#0F1313" CornerRadius="8" Padding="12">
                 <StackPanel>
-                    <TextBlock Text="Recent trades (ejemplo)" Foreground="#BDBDBD" />
-                    <ListBox>
-                        <ListBoxItem>BTCUSD LONG +$1,771,827.25</ListBoxItem>
-                        <ListBoxItem>ETHUSD SHORT -$75.50</ListBoxItem>
+                    <TextBlock Text="Operaciones recientes" Foreground="#BDBDBD" Margin="0,0,0,8" />
+                    <ListBox x:Name="TradesList" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                     </ListBox>
                 </StackPanel>
             </Border>

@@ -51,6 +51,7 @@ namespace TradePro.Views
         }
 
         private List<Market> _allMarkets = new();
+        private List<Market> _filteredMarkets = new();
         private int _page = 1;
         private int _pageSize = 12;
 
@@ -64,8 +65,10 @@ namespace TradePro.Views
             {
                 var prev = this.FindName("BtnPrev") as Button;
                 var next = this.FindName("BtnNext") as Button;
+                var searchBox = this.FindName("SearchBox") as TextBox;
                 if (prev != null) prev.Click += (s, e) => { if (_page > 1) { _page--; ShowPage(); } };
                 if (next != null) next.Click += (s, e) => { _page++; ShowPage(); };
+                if (searchBox != null) searchBox.KeyUp += SearchBox_KeyUp;
             }
             catch { }
         }
@@ -148,8 +151,41 @@ namespace TradePro.Views
 
             // store all markets and show first page
             _allMarkets = markets.OrderBy(m => m.Symbol).ToList();
+            _filteredMarkets = _allMarkets.ToList();
             _page = 1;
             ShowPage();
+        }
+
+        private void SearchBox_KeyUp(object? sender, KeyEventArgs e)
+        {
+            var tb = sender as TextBox;
+            if (tb == null) return;
+            ApplyFilter(tb.Text);
+        }
+
+        private void ApplyFilter(string query)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    _filteredMarkets = _allMarkets.ToList();
+                }
+                else
+                {
+                    var q = query.Trim();
+                    // allow search by symbol or full name (case-insensitive)
+                    _filteredMarkets = _allMarkets.Where(m => m.Symbol != null && m.Symbol.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0
+                        || (m.Symbol + "usd").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                }
+
+                _page = 1;
+                ShowPage();
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         private void ShowPage()
@@ -161,12 +197,12 @@ namespace TradePro.Views
             if (assetsList == null) return;
 
             assetsList.Items.Clear();
-            var total = _allMarkets.Count;
+            var total = _filteredMarkets.Count;
             var totalPages = (int)Math.Ceiling(total / (double)_pageSize);
             if (_page < 1) _page = 1;
             if (_page > totalPages) _page = totalPages == 0 ? 1 : totalPages;
 
-            var slice = _allMarkets.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+            var slice = _filteredMarkets.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
             foreach (var m in slice)
             {
                 var card = new Border

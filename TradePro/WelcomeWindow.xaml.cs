@@ -31,7 +31,7 @@ namespace TradePro
             TopBarControl.LogoutRequested += TopBar_LogoutRequested;
             TopBarControl.DashboardRequested += (s, e) => ShowDashboard(null);
             TopBarControl.TradeRequested += (s, e) => ShowTradeView();
-            TopBarControl.PortfolioRequested += (s, e) => ShowPortfolioView();
+            // PortfolioRequested removed - no subscription
             TopBarControl.HistoryRequested += (s, e) => ShowHistoryView();
             TopBarControl.StatisticsRequested += (s, e) => ShowStatisticsView();
             TopBarControl.ProfileRequested += (s, e) => ShowProfileView();

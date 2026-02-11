@@ -15,7 +15,7 @@ namespace TradePro.Views
         // Navigation events
         public event RoutedEventHandler? DashboardRequested;
         public event RoutedEventHandler? TradeRequested;
-        public event RoutedEventHandler? PortfolioRequested;
+        public event RoutedEventHandler? PortfolioRequested; // restored to avoid incremental build issues
         public event RoutedEventHandler? HistoryRequested;
         public event RoutedEventHandler? StatisticsRequested;
         public event RoutedEventHandler? ProfileRequested;
@@ -33,11 +33,6 @@ namespace TradePro.Views
         private void TradeButton_Click(object sender, RoutedEventArgs e)
         {
             TradeRequested?.Invoke(this, e);
-        }
-
-        private void PortfolioButton_Click(object sender, RoutedEventArgs e)
-        {
-            PortfolioRequested?.Invoke(this, e);
         }
 
         private void HistoryButton_Click(object sender, RoutedEventArgs e)

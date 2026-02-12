@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "/t/yHVbx6YE=",
+  "dgSpecHash": "6FVoV+Wtop8=",
   "success": true,
   "projectFilePath": "D:\\reku\\TradePro\\TradePro\\TradePro.csproj",
   "expectedPackageFiles": [
@@ -43,6 +43,11 @@
     "C:\\Users\\ik012982i18\\.nuget\\packages\\oxyplot.core\\2.1.0\\oxyplot.core.2.1.0.nupkg.sha512",
     "C:\\Users\\ik012982i18\\.nuget\\packages\\oxyplot.wpf\\2.1.0\\oxyplot.wpf.2.1.0.nupkg.sha512",
     "C:\\Users\\ik012982i18\\.nuget\\packages\\oxyplot.wpf.shared\\2.1.0\\oxyplot.wpf.shared.2.1.0.nupkg.sha512",
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\pdfsharpcore\\1.3.44\\pdfsharpcore.1.3.44.nupkg.sha512",
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\questpdf\\2024.12.0\\questpdf.2024.12.0.nupkg.sha512",
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\sharpziplib\\1.3.3\\sharpziplib.1.3.3.nupkg.sha512",
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\sixlabors.fonts\\1.0.0-beta17\\sixlabors.fonts.1.0.0-beta17.nupkg.sha512",
+    "C:\\Users\\ik012982i18\\.nuget\\packages\\sixlabors.imagesharp\\1.0.4\\sixlabors.imagesharp.1.0.4.nupkg.sha512",
     "C:\\Users\\ik012982i18\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
     "C:\\Users\\ik012982i18\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
     "C:\\Users\\ik012982i18\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.6\\sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",

@@ -3,8 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="#0E0F10">
         <StackPanel Margin="24">
-            <TextBlock Text="Estadisticas" Foreground="White" FontSize="22" FontWeight="Bold" />
-            <TextBlock Text="Resumen del rendimiento del usuario" Foreground="#BDBDBD" Margin="0,6,0,12" />
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Estadisticas" Foreground="White" FontSize="22" FontWeight="Bold" />
+                    <TextBlock Text="Resumen del rendimiento del usuario" Foreground="#BDBDBD" Margin="0,6,0,12" />
+                </StackPanel>
+                <Button x:Name="BtnExportPdf" Content="Exportar a PDF" Width="140" Height="32" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="8,0,0,0" />
+            </DockPanel>
 
             <!-- Cards -->
             <WrapPanel x:Name="CardsPanel" ItemHeight="110" ItemWidth="240" Orientation="Horizontal" Margin="0,0,0,12">
@@ -23,7 +28,7 @@
                         <TextBlock Text="PnL diario" Foreground="#BDBDBD" Margin="0,0,0,8" />
                         <TextBlock x:Name="DailyPnlText" Text="-" Foreground="White" FontSize="18" FontWeight="Bold" />
                         <TextBlock Text="(Realizado en el dia)" Foreground="#A9A9A9" FontSize="12" />
-                        
+
                         <!-- small sparkline placeholder -->
                         <Rectangle Height="64" Fill="#0B0C0D" RadiusX="4" RadiusY="4" Margin="0,8,0,0" />
                     </StackPanel>

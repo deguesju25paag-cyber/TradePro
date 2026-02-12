@@ -22,12 +22,6 @@
                         <StackPanel VerticalAlignment="Stretch" Margin="0,0,0,8">
                             <Border Background="#0F1313" CornerRadius="8" Padding="18" Margin="0,0,0,12">
                                 <StackPanel>
-                                    <TextBlock>
-                                        <Run Text="Usuario: " Foreground="#BDBDBD" />
-                                        <Run x:Name="UsernameText" Text="-" Foreground="White" FontWeight="SemiBold" />
-                                    </TextBlock>
-
-                                    <Separator Margin="0,16,0,16" />
 
                                     <TextBlock Text="Editar perfil" Foreground="#BDBDBD" FontWeight="SemiBold" Margin="0,0,0,6" />
                                     <StackPanel Orientation="Vertical" Margin="0,6,0,0">

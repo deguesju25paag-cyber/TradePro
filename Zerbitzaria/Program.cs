@@ -407,6 +407,86 @@ app.MapGet("/api/users/{userId}", async (ApplicationDbContext db, int userId) =>
     return Results.Ok(new { user.Username, user.Balance, user.Id });
 });
 
+// Update user (username and/or password)
+app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int userId, System.Text.Json.JsonElement payload) =>
+{
+    var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
+    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+
+    try
+    {
+        string? newUsername = null;
+        string? newPassword = null;
+
+        if (payload.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            if (payload.TryGetProperty("username", out var uProp) && uProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                newUsername = uProp.GetString();
+            }
+            if (payload.TryGetProperty("password", out var pProp) && pProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                newPassword = pProp.GetString();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(newUsername) && !string.Equals(newUsername, user.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            if (await db.Users.AnyAsync(x => x.Username == newUsername && x.Id != userId))
+            {
+                return Results.BadRequest(new { message = "Nombre de usuario ya en uso" });
+            }
+            user.Username = newUsername!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword!);
+        }
+
+        await db.SaveChangesAsync();
+        return Results.Ok(new { message = "Perfil actualizado" });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error updating user: " + ex.Message);
+        return Results.StatusCode(500);
+    }
+});
+
+// Delete user and related data
+app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId, IHubContext<UpdatesHub>? hubContext) =>
+{
+    var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
+    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+
+    try
+    {
+        // remove trades and positions
+        try { db.Trades.RemoveRange(db.Trades.Where(t => t.UserId == userId)); } catch { }
+        try { db.Positions.RemoveRange(db.Positions.Where(p => p.UserId == userId)); } catch { }
+        db.Users.Remove(user);
+        await db.SaveChangesAsync();
+
+        // notify via SignalR if available
+        try
+        {
+            if (hubContext != null)
+            {
+                await hubContext.Clients.Group($"user-{userId}").SendAsync("UserDeleted");
+            }
+        }
+        catch { }
+
+        return Results.Ok(new { message = "Usuario eliminado" });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error deleting user: " + ex.Message);
+        return Results.StatusCode(500);
+    }
+});
+
 // New: aggregated dashboard endpoint - returns user balance, markets and positions in one call
 app.MapGet("/api/users/{userId}/dashboard", async (ApplicationDbContext db, int userId) =>
 {

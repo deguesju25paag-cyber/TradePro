@@ -2,30 +2,65 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="#0E0F10">
-        <StackPanel Margin="24">
-            <TextBlock Text="Profile" Foreground="White" FontSize="22" FontWeight="Bold" />
-            <TextBlock Text="Configuracion del perfil" Foreground="#BDBDBD" Margin="0,6,0,12" />
+        <!-- Center a narrow content column while allowing full height usage -->
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <Border Background="#0F1313" CornerRadius="8" Padding="12">
-                <StackPanel>
-                    <TextBlock>
-                        <Run Text="Usuario: " Foreground="#BDBDBD" />
-                        <Run x:Name="UsernameText" Text="admin" Foreground="White" FontWeight="SemiBold" />
-                    </TextBlock>
-                    <TextBlock Margin="0,6,0,0">
-                        <Run Text="Balance: " Foreground="#BDBDBD" />
-                        <Run x:Name="BalanceText" Text="$0.00" Foreground="White" FontWeight="SemiBold" />
-                    </TextBlock>
+            <!-- Header -->
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                <TextBlock Text="Profile" Foreground="White" FontSize="22" FontWeight="Bold" />
+                <TextBlock Text="Configuracion del perfil" Foreground="#BDBDBD" Margin="0,6,0,12" />
+            </StackPanel>
 
-                    <Separator Margin="0,12,0,12" />
+            <!-- Content: narrower column, uses full height and scrolls if necessary -->
+            <Grid Grid.Row="1" HorizontalAlignment="Center">
+                <Border Width="720" Background="Transparent">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0">
+                        <StackPanel VerticalAlignment="Stretch" Margin="0,0,0,8">
+                            <Border Background="#0F1313" CornerRadius="8" Padding="18" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock>
+                                        <Run Text="Usuario: " Foreground="#BDBDBD" />
+                                        <Run x:Name="UsernameText" Text="-" Foreground="White" FontWeight="SemiBold" />
+                                    </TextBlock>
 
-                    <TextBlock Text="Posiciones" Foreground="#BDBDBD" FontWeight="SemiBold" />
-                    <ListBox x:Name="PositionsListBox" Background="Transparent" BorderThickness="0" Foreground="White" Margin="0,6,0,0" />
+                                    <Separator Margin="0,16,0,16" />
 
-                    <TextBlock Text="Operaciones recientes" Foreground="#BDBDBD" FontWeight="SemiBold" Margin="0,12,0,0" />
-                    <ListBox x:Name="TradesListBox" Background="Transparent" BorderThickness="0" Foreground="White" Margin="0,6,0,0" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+                                    <TextBlock Text="Editar perfil" Foreground="#BDBDBD" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <StackPanel Orientation="Vertical" Margin="0,6,0,0">
+                                        <TextBlock Text="Nuevo nombre de usuario" Foreground="#BDBDBD" FontSize="12" />
+                                        <TextBox x:Name="NewUsernameBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
+
+                                        <TextBlock Text="Nueva contrasena" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
+                                        <PasswordBox x:Name="NewPasswordBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
+
+                                        <TextBlock Text="Confirmar contrasena" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
+                                        <PasswordBox x:Name="ConfirmPasswordBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
+
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,16,0,0">
+                                            <Button x:Name="BtnSaveProfile" Content="Guardar cambios" Width="140" Padding="8" Margin="0,0,12,0" />
+                                            <Button x:Name="BtnLogout" Content="Cerrar sesion" Width="120" Padding="8" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+
+                                    <Separator Margin="0,18,0,18" />
+
+                                    <TextBlock Text="Peligro" Foreground="#F0625D" FontWeight="SemiBold" />
+                                    <TextBlock Text="Eliminar cuenta borrara todos los datos locales y en servidor (si aplica)." Foreground="#BDBDBD" FontSize="12" Margin="0,8,0,12" />
+                                    <Button x:Name="BtnDeleteAccount" Content="Eliminar cuenta" Background="#B71C1C" Foreground="White" Padding="10" Width="160" />
+
+
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

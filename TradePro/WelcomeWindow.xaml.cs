@@ -272,7 +272,7 @@ namespace TradePro
         private void ShowPortfolioView() { MainContent.Content = new PortfolioView(); }
         private void ShowHistoryView() { var hv = new HistoryView(); hv.SetUserId(_currentUserId); MainContent.Content = hv; }
         private void ShowStatisticsView() { var sv = new StatisticsView(); sv.SetUserId(_currentUserId); MainContent.Content = sv; }
-        private void ShowProfileView() { MainContent.Content = new ProfileView(); }
+        private void ShowProfileView() { var pv = new ProfileView(); pv.SetUserId(_currentUserId); pv.LoggedOut += () => Logout(); MainContent.Content = pv; }
 
         private void TopBar_LogoutRequested(object? sender, RoutedEventArgs e) => Logout();
         public void Logout()

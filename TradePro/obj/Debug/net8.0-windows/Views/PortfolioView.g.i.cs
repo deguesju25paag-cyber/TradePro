@@ -52,7 +52,7 @@ namespace TradePro.Views {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/TradePro;component/views/portfolioview.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/TradePro;V1.0.0.0;component/views/portfolioview.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Views\PortfolioView.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

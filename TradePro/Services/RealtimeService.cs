@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
 using TradePro.Models;
+using System.Text.Json;
 
 namespace TradePro.Services
 {
@@ -11,6 +12,7 @@ namespace TradePro.Services
     {
         private readonly HubConnection _connection;
         public event Action<Market>? MarketUpdated;
+        public event Action<JsonElement>? PositionUpdated; // raw payload handler for flexibility
 
         public RealtimeService(string url = "http://localhost:5000/updates")
         {
@@ -22,6 +24,11 @@ namespace TradePro.Services
             _connection.On<Market>("MarketUpdated", (m) =>
             {
                 MarketUpdated?.Invoke(m);
+            });
+
+            _connection.On<JsonElement>("PositionUpdated", (payload) =>
+            {
+                PositionUpdated?.Invoke(payload);
             });
         }
 

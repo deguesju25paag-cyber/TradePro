@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using TradePro.Models;
+using TradePro.Services;
 
 namespace TradePro.Views
 {
@@ -51,6 +52,11 @@ namespace TradePro.Views
         // store latest available balance from server/local DB so we can compute total (equity)
         private decimal _availableBalance = 0m;
 
+        // timer to refresh positions and totals periodically
+        private readonly DispatcherTimer _positionsTimer;
+
+        private readonly RealtimeService _realtime;
+
         static DashboardView()
         {
             try { _cg.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProClient/1.0"); } catch { }
@@ -60,11 +66,183 @@ namespace TradePro.Views
         {
             InitializeComponent();
             this.Unloaded += DashboardView_Unloaded;
+
+            _positionsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _positionsTimer.Tick += (s, e) =>
+            {
+                try { _ = RefreshPositionsFromServerAsync(); } catch { }
+            };
+
+            _realtime = new RealtimeService();
+            _realtime.MarketUpdated += OnMarketUpdatedRealtime;
+            _realtime.PositionUpdated += OnPositionUpdatedRealtime;
         }
 
         private void DashboardView_Unloaded(object? sender, RoutedEventArgs e)
         {
             StopRealtimeUpdates();
+            try { _positionsTimer.Stop(); } catch { }
+        }
+
+        private void OnMarketUpdatedRealtime(Market m)
+        {
+            // update last markets and UI card if exists
+            try
+            {
+                var existing = _lastMarkets.FirstOrDefault(x => string.Equals(x.Symbol, m.Symbol, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    existing.Price = m.Price;
+                    existing.Change = m.Change;
+                    existing.IsUp = m.IsUp;
+                }
+                else
+                {
+                    _lastMarkets.Add(m);
+                }
+
+                // update displayed positions pnl and total
+                UpdatePnlAndTotalOnUiThread();
+
+                // update card map if present
+                if (_cardMap.TryGetValue(m.Symbol, out var tbs))
+                {
+                    var (priceTb, changeTb) = tbs;
+                    priceTb.Dispatcher.Invoke(() => priceTb.Text = m.Price.ToString("C"));
+                    changeTb.Dispatcher.Invoke(() =>
+                    {
+                        changeTb.Text = (m.Change >= 0 ? "+" : "") + m.Change.ToString("0.##") + "%";
+                        changeTb.Foreground = m.Change >= 0 ? Brushes.LightGreen : Brushes.IndianRed;
+                    });
+                }
+            }
+            catch { }
+        }
+
+        private void OnPositionUpdatedRealtime(JsonElement payload)
+        {
+            try
+            {
+                // handle payload types: Opened / Closed
+                if (payload.ValueKind != JsonValueKind.Object) return;
+                if (!payload.TryGetProperty("type", out var typeEl)) return;
+                var type = typeEl.GetString();
+
+                if (string.Equals(type, "Opened", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Position and Trade and Balance
+                    if (payload.TryGetProperty("position", out var posEl))
+                    {
+                        var posDto = JsonSerializer.Deserialize<TradePro.Models.Position>(posEl.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if (posDto != null)
+                        {
+                            // add to displayed positions and refresh UI partials
+                            Dispatcher.Invoke(() =>
+                            {
+                                _displayedPositions[posDto.Id] = posDto;
+                                var positionsStack = this.FindName("PositionsStack") as StackPanel;
+                                if (positionsStack != null)
+                                {
+                                    positionsStack.Children.Clear();
+                                    foreach (var p in _displayedPositions.Values)
+                                    {
+                                        positionsStack.Children.Add(CreatePositionElement(p, _lastMarkets));
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    if (payload.TryGetProperty("balance", out var balEl) && balEl.TryGetDecimal(out var bal))
+                    {
+                        _availableBalance = bal;
+                        UpdatePnlAndTotalOnUiThread();
+                    }
+                }
+                else if (string.Equals(type, "Closed", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Trade and maybe PositionId and new Balance
+                    int? posId = null;
+                    if (payload.TryGetProperty("positionId", out var pidEl) && pidEl.ValueKind == JsonValueKind.Number && pidEl.TryGetInt32(out var pid)) posId = pid;
+
+                    if (posId.HasValue)
+                    {
+                        _displayedPositions.Remove(posId.Value);
+                        // remove mapping for pnl
+                        _positionPnlMap.Remove(posId.Value);
+                    }
+
+                    if (payload.TryGetProperty("balance", out var balEl2) && balEl2.TryGetDecimal(out var newBal))
+                    {
+                        _availableBalance = newBal;
+                    }
+
+                    UpdatePnlAndTotalOnUiThread();
+                    // refresh positions stack UI
+                    Dispatcher.Invoke(() =>
+                    {
+                        var positionsStack = this.FindName("PositionsStack") as StackPanel;
+                        if (positionsStack != null)
+                        {
+                            positionsStack.Children.Clear();
+                            foreach (var p in _displayedPositions.Values)
+                            {
+                                positionsStack.Children.Add(CreatePositionElement(p, _lastMarkets));
+                            }
+                        }
+                    });
+                }
+            }
+            catch { }
+        }
+
+        private void UpdatePnlAndTotalOnUiThread()
+        {
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    // update pnl textblocks
+                    foreach (var kv in _displayedPositions)
+                    {
+                        var pos = kv.Value;
+                        if (_positionPnlMap.TryGetValue(pos.Id, out var pnlTb))
+                        {
+                            var market = _lastMarkets.FirstOrDefault(m => string.Equals(m.Symbol, pos.Symbol, StringComparison.OrdinalIgnoreCase));
+                            decimal currentPrice = market?.Price ?? 0m;
+                            decimal pnl = 0m;
+                            if (pos.IsOpen && pos.EntryPrice > 0 && pos.Quantity > 0)
+                            {
+                                if (string.Equals(pos.Side, "LONG", StringComparison.OrdinalIgnoreCase)) pnl = (currentPrice - pos.EntryPrice) * pos.Quantity;
+                                else pnl = (pos.EntryPrice - currentPrice) * pos.Quantity;
+                            }
+                            pnlTb.Text = (pnl >= 0 ? "+" : "") + pnl.ToString("C");
+                            pnlTb.Foreground = pnl >= 0 ? Brushes.LightGreen : Brushes.IndianRed;
+                        }
+                    }
+
+                    // update total
+                    var userBalText = this.FindName("UserBalanceText") as TextBlock;
+                    if (userBalText != null)
+                    {
+                        decimal totalBalance = _availableBalance;
+                        foreach (var pos in _displayedPositions.Values)
+                        {
+                            var market = _lastMarkets.FirstOrDefault(m => string.Equals(m.Symbol, pos.Symbol, StringComparison.OrdinalIgnoreCase));
+                            decimal currentPrice = market?.Price ?? 0m;
+                            decimal pnl = 0m;
+                            if (pos.IsOpen && pos.EntryPrice > 0 && pos.Quantity > 0)
+                            {
+                                if (string.Equals(pos.Side, "LONG", StringComparison.OrdinalIgnoreCase)) pnl = (currentPrice - pos.EntryPrice) * pos.Quantity;
+                                else pnl = (pos.EntryPrice - currentPrice) * pos.Quantity;
+                            }
+                            totalBalance += pos.Margin + pnl;
+                        }
+                        userBalText.Text = totalBalance.ToString("C");
+                    }
+                });
+            }
+            catch { }
         }
 
         // Helper: do a GET with timeout and return HttpResponseMessage or null
@@ -359,6 +537,9 @@ namespace TradePro.Views
 
             // start updates every 1 second for near-realtime (be careful with rate limits)
             StartRealtimeUpdates(TimeSpan.FromSeconds(1));
+
+            // start positions timer
+            _positionsTimer.Start();
         }
 
         // Periodically refresh positions from server/local DB

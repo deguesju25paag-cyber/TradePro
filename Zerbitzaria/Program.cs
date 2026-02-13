@@ -324,6 +324,8 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
     db.Trades.Add(trade);
     await db.SaveChangesAsync();
 
+    var dtoTrade = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
+
     // Also create a Position record for the opened trade so dashboard shows it
     try
     {
@@ -347,11 +349,17 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
     try
     {
         // notify user group via SignalR about new position/trade
-        await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Opened", Symbol = trade.Symbol, Margin = trade.Margin, Leverage = trade.Leverage, TradeId = trade.Id });
+        var positionDto = new Zerbitzaria.Dtos.PositionDto(0, dto.Symbol, dto.Side, dto.Leverage, dto.Margin, entry, quantity, true, userId, trade.Id);
+        // attempt to get the persisted position id if created
+        try { var pos = db.Positions.FirstOrDefault(p => p.TradeId == trade.Id); if (pos != null) positionDto = new Zerbitzaria.Dtos.PositionDto(pos.Id, pos.Symbol, pos.Side, pos.Leverage, pos.Margin, pos.EntryPrice, pos.Quantity, pos.IsOpen, pos.UserId, pos.TradeId); } catch { }
+        try
+        {
+            await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Opened", Position = positionDto, Trade = dtoTrade, Balance = user.Balance });
+        }
+        catch { }
     }
     catch { }
 
-    var dtoTrade = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
     return Results.Ok(dtoTrade);
 });
 
@@ -423,14 +431,17 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
 
     await db.SaveChangesAsync();
 
+    var tradeDto = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
+
     try
     {
         // notify user group via SignalR about closed position/trade
-        await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Closed", Symbol = trade.Symbol, TradeId = trade.Id, Pnl = pnl });
+        var pos = await db.Positions.FirstOrDefaultAsync(p => p.UserId == userId && p.TradeId == trade.Id);
+        int? posId = pos?.Id;
+        await hubContext.Clients.Group($"user-{userId}").SendAsync("PositionUpdated", new { Type = "Closed", Trade = tradeDto, PositionId = posId, Pnl = pnl, Balance = user?.Balance });
     }
     catch { }
 
-    var tradeDto = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
     var closeResult = new CloseTradeResultDto(tradeDto, current, pnl);
     return Results.Ok(closeResult);
 });

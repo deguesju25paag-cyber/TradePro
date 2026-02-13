@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using TradePro.Models;
 using TradePro.Services;
+using System.Windows.Threading;
 
 namespace TradePro.Views
 {
@@ -22,6 +23,7 @@ namespace TradePro.Views
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         private readonly RealtimeService _realtime;
+        private readonly DispatcherTimer _refreshTimer;
 
         // Larger mapping for many assets
         private static readonly Dictionary<string, string> _symbolToId = new(StringComparer.OrdinalIgnoreCase)
@@ -62,9 +64,16 @@ namespace TradePro.Views
         {
             InitializeComponent();
             this.Loaded += TradeView_Loaded;
+            this.Unloaded += TradeView_Unloaded;
 
             _realtime = new RealtimeService();
             _realtime.MarketUpdated += Realtime_MarketUpdated;
+
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _refreshTimer.Tick += (s, e) =>
+            {
+                try { ShowPage(); } catch { }
+            };
 
             // wire pagination buttons
             try
@@ -75,6 +84,23 @@ namespace TradePro.Views
                 if (prev != null) prev.Click += (s, e) => { if (_page > 1) { _page--; ShowPage(); } };
                 if (next != null) next.Click += (s, e) => { _page++; ShowPage(); };
                 if (searchBox != null) searchBox.KeyUp += SearchBox_KeyUp;
+            }
+            catch { }
+        }
+
+        private void TradeView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _refreshTimer.Stop();
+            }
+            catch { }
+
+            try
+            {
+                _realtime.MarketUpdated -= Realtime_MarketUpdated;
+                _ = _realtime.StopAsync();
+                _realtime.Dispose();
             }
             catch { }
         }
@@ -108,6 +134,7 @@ namespace TradePro.Views
             this.Loaded -= TradeView_Loaded;
             await PopulateFromApiAsync();
             await _realtime.StartAsync();
+            try { _refreshTimer.Start(); } catch { }
         }
 
         public async Task PopulateFromApiAsync()

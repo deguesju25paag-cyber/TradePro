@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using TradePro.Models;
+using TradePro.Services;
 
 namespace TradePro.Views
 {
@@ -86,7 +87,7 @@ namespace TradePro.Views
 
             List<Market> markets = new();
 
-            // try server first
+            // try server first (HTTP)
             try
             {
                 var resp = await _http.GetAsync("/api/markets");
@@ -103,6 +104,22 @@ namespace TradePro.Views
             catch
             {
                 // ignore
+            }
+
+            // If HTTP failed, try TCP fallback to server local TCP service
+            if (markets == null || markets.Count == 0)
+            {
+                try
+                {
+                    using var tcp = new TcpClientService("127.0.0.1", 6000);
+                    var req = new { action = "get_markets" };
+                    var list = await tcp.SendRequestAsync<List<Market>>(req);
+                    if (list != null && list.Count > 0) markets = list;
+                }
+                catch
+                {
+                    // ignore and fallback to CoinGecko
+                }
             }
 
             // If server didn't provide markets, fallback to CoinGecko for many ids

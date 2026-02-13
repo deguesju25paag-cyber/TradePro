@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using Zerbitzaria.Models;
 using Microsoft.AspNetCore.SignalR;
 using Zerbitzaria.Hubs;
+using Zerbitzaria.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<Zerbitzaria.Services.MarketCache>();
 builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
+
+// Add minimal TCP server hosted service for simple DB queries from desktop client
+builder.Services.AddHostedService<Zerbitzaria.Services.TcpServerHostedService>();
 
 var app = builder.Build();
 
@@ -77,25 +81,26 @@ catch (Exception ex)
 
 Console.WriteLine("Zerbitzaria running on http://localhost:5000");
 
-// Login endpoint
+// Login endpoint - return DTO
 app.MapPost("/api/login", async (ApplicationDbContext db, UserDto dto) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
-    if (user == null) return Results.BadRequest(new { message = "Usuario o contraseña incorrectos" });
-    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.BadRequest(new { message = "Usuario o contraseña incorrectos" });
-    return Results.Ok(new { username = user.Username, balance = user.Balance, userId = user.Id });
+    if (user == null) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos"));
+    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos"));
+    var resp = new LoginResponseDto(user.Username, user.Balance, user.Id);
+    return Results.Ok(resp);
 });
 
-// Register endpoint
+// Register endpoint - return DTO
 app.MapPost("/api/register", async (ApplicationDbContext db, UserDto dto) =>
 {
-    if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password)) return Results.BadRequest(new { message = "Campos inválidos" });
-    if (await db.Users.AnyAsync(u => u.Username == dto.Username)) return Results.BadRequest(new { message = "Usuario ya existe" });
+    if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password)) return Results.BadRequest(new ErrorResponseDto("invalid_request", "Campos inválidos"));
+    if (await db.Users.AnyAsync(u => u.Username == dto.Username)) return Results.BadRequest(new ErrorResponseDto("user_exists", "Usuario ya existe"));
     var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
     var user = new User { Username = dto.Username, PasswordHash = hash, Balance = 100000m };
     db.Users.Add(user);
     await db.SaveChangesAsync();
-    return Results.Ok(new { message = "Registrado" });
+    return Results.Ok(new GenericMessageDto("Registrado"));
 });
 
 // Get markets - resilient: try DB, on DB error fallback to CoinGecko live prices
@@ -105,7 +110,11 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
     try
     {
         var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
-        if (markets != null && markets.Count > 0) return Results.Ok(markets);
+        if (markets != null && markets.Count > 0)
+        {
+            var dtoList = markets.Select(m => new MarketDto(m.Symbol, m.Price, m.Change, m.IsUp)).ToList();
+            return Results.Ok(dtoList);
+        }
     }
     catch (Microsoft.Data.Sqlite.SqliteException sqliteEx)
     {
@@ -118,7 +127,25 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
         // prefer in-process MarketCache singleton
         if (cache != null && cache.HasData)
         {
-            return Results.Ok(cache.GetAll());
+            var cached = cache.GetAll();
+            // cached contains anonymous objects - map to MarketDto if possible
+            var mapped = cached.Select(o =>
+            {
+                try
+                {
+                    var j = System.Text.Json.JsonSerializer.Serialize(o);
+                    using var doc = System.Text.Json.JsonDocument.Parse(j);
+                    var root = doc.RootElement;
+                    var sym = root.GetProperty("symbol").GetString() ?? string.Empty;
+                    var price = root.GetProperty("price").GetDecimal();
+                    var change = root.GetProperty("change").GetDouble();
+                    var isUp = root.GetProperty("isUp").GetBoolean();
+                    return new MarketDto(sym, price, change, isUp);
+                }
+                catch { return null; }
+            }).Where(x => x != null).Select(x => x!).ToList();
+
+            return Results.Ok(mapped);
         }
 
         var client = httpFactory.CreateClient();
@@ -162,7 +189,7 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
         var json = await resp.Content.ReadAsStringAsync();
         using var doc = System.Text.Json.JsonDocument.Parse(json);
 
-        var list = new List<object>();
+        var list = new List<MarketDto>();
         foreach (var kv in map)
         {
             var sym = kv.Key; var id = kv.Value;
@@ -170,7 +197,7 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
             decimal price = 0m; double change = 0;
             if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
             if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
-            list.Add(new { Symbol = sym, Price = price, Change = change, IsUp = change >= 0 });
+            list.Add(new MarketDto(sym, price, change, change >= 0));
         }
 
         // also store in memoryCache for other consumers if available
@@ -186,41 +213,43 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
     }
 });
 
-// Get positions for a user
+// Get positions for a user - return PositionDto list
 app.MapGet("/api/users/{userId}/positions", async (ApplicationDbContext db, int userId) =>
 {
     try
     {
         var positions = await db.Positions.Where(p => p.UserId == userId).ToListAsync();
-        return Results.Ok(positions);
+        var dto = positions.Select(p => new PositionDto(p.Id, p.Symbol, p.Side, p.Leverage, p.Margin, p.EntryPrice, p.Quantity, p.IsOpen, p.UserId, p.TradeId)).ToList();
+        return Results.Ok(dto);
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Error in /api/users/{userId}/positions: {ex}");
-        return Results.Json(new { message = "Error retrieving positions", details = ex.Message }, statusCode: 500);
+        return Results.Json(new ErrorResponseDto("error", ex.Message), statusCode: 500);
     }
 });
 
-// Get trades for a user
+// Get trades for a user - return TradeDto list
 app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId) =>
 {
     try
     {
         var trades = await db.Trades.Where(t => t.UserId == userId).OrderByDescending(t => t.Timestamp).ToListAsync();
-        return Results.Ok(trades);
+        var dto = trades.Select(t => new TradeDto(t.Id, t.Symbol, t.Side, t.Pnl, t.EntryPrice, t.Margin, t.Leverage, t.Quantity, t.IsOpen, t.Timestamp, t.UserId)).ToList();
+        return Results.Ok(dto);
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Error in /api/users/{userId}/trades: {ex}");
-        return Results.Json(new { message = "Error retrieving trades", details = ex.Message }, statusCode: 500);
+        return Results.Json(new ErrorResponseDto("error", ex.Message), statusCode: 500);
     }
 });
 
-// Open a new trade for a user
+// Open a new trade for a user - return TradeDto
 app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
 
     // Determine entry price: prefer provided, then DB market, then CoinGecko
     decimal entry = 0m;
@@ -263,14 +292,14 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
         }
     }
 
-    if (entry <= 0) return Results.BadRequest(new { message = "No se pudo determinar el precio de entrada" });
+    if (entry <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "No se pudo determinar el precio de entrada"));
 
     // Compute exposure and quantity
     var exposure = dto.Margin * dto.Leverage;
     var quantity = exposure / entry;
 
     // Check user balance for margin
-    if (user.Balance < dto.Margin) return Results.BadRequest(new { message = "Saldo insuficiente" });
+    if (user.Balance < dto.Margin) return Results.BadRequest(new ErrorResponseDto("insufficient_funds", "Saldo insuficiente"));
 
     user.Balance -= dto.Margin; // reserve margin
 
@@ -318,15 +347,16 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
     }
     catch { }
 
-    return Results.Ok(trade);
+    var dtoTrade = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
+    return Results.Ok(dtoTrade);
 });
 
 // Close a trade
 app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var trade = await db.Trades.SingleOrDefaultAsync(t => t.Id == tradeId && t.UserId == userId);
-    if (trade == null) return Results.NotFound(new { message = "Trade no encontrado" });
-    if (!trade.IsOpen) return Results.BadRequest(new { message = "Trade ya cerrado" });
+    if (trade == null) return Results.NotFound(new ErrorResponseDto("not_found", "Trade no encontrado"));
+    if (!trade.IsOpen) return Results.BadRequest(new ErrorResponseDto("already_closed", "Trade ya cerrado"));
 
     // determine current price
     decimal current = 0m;
@@ -353,7 +383,7 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
         catch { }
     }
 
-    if (current <= 0) return Results.BadRequest(new { message = "No se pudo determinar precio actual" });
+    if (current <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "No se pudo determinar precio actual"));
 
     // calculate pnl
     decimal pnl = 0m;
@@ -396,22 +426,25 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
     }
     catch { }
 
-    return Results.Ok(new { trade, currentPrice = current, pnl });
+    var tradeDto = new TradeDto(trade.Id, trade.Symbol, trade.Side, trade.Pnl, trade.EntryPrice, trade.Margin, trade.Leverage, trade.Quantity, trade.IsOpen, trade.Timestamp, trade.UserId);
+    var closeResult = new CloseTradeResultDto(tradeDto, current, pnl);
+    return Results.Ok(closeResult);
 });
 
 // Get user profile
 app.MapGet("/api/users/{userId}", async (ApplicationDbContext db, int userId) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound();
-    return Results.Ok(new { user.Username, user.Balance, user.Id });
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    var dto = new UserProfileDto(user.Username, user.Balance, user.Id);
+    return Results.Ok(dto);
 });
 
 // Update user (username and/or password)
 app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int userId, System.Text.Json.JsonElement payload) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
 
     try
     {
@@ -434,7 +467,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
         {
             if (await db.Users.AnyAsync(x => x.Username == newUsername && x.Id != userId))
             {
-                return Results.BadRequest(new { message = "Nombre de usuario ya en uso" });
+                return Results.BadRequest(new ErrorResponseDto("username_taken", "Nombre de usuario ya en uso"));
             }
             user.Username = newUsername!;
         }
@@ -445,7 +478,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
         }
 
         await db.SaveChangesAsync();
-        return Results.Ok(new { message = "Perfil actualizado" });
+        return Results.Ok(new GenericMessageDto("Perfil actualizado"));
     }
     catch (Exception ex)
     {
@@ -458,7 +491,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
 app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId, IHubContext<UpdatesHub>? hubContext) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
 
     try
     {
@@ -478,7 +511,7 @@ app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId,
         }
         catch { }
 
-        return Results.Ok(new { message = "Usuario eliminado" });
+        return Results.Ok(new GenericMessageDto("Usuario eliminado"));
     }
     catch (Exception ex)
     {
@@ -491,12 +524,16 @@ app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId,
 app.MapGet("/api/users/{userId}/dashboard", async (ApplicationDbContext db, int userId) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new { message = "Usuario no encontrado" });
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
 
     var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
     var positions = await db.Positions.Where(p => p.UserId == userId).ToListAsync();
 
-    return Results.Ok(new { balance = user.Balance, markets = markets, positions = positions });
+    var marketDtos = markets.Select(m => new MarketDto(m.Symbol, m.Price, m.Change, m.IsUp)).ToList();
+    var positionDtos = positions.Select(p => new PositionDto(p.Id, p.Symbol, p.Side, p.Leverage, p.Margin, p.EntryPrice, p.Quantity, p.IsOpen, p.UserId, p.TradeId)).ToList();
+
+    var dash = new DashboardDto(user.Balance, marketDtos, positionDtos);
+    return Results.Ok(dash);
 });
 
 app.Run();

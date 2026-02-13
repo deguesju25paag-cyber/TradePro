@@ -9,11 +9,16 @@ namespace TradePro.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is bool b)
+            try
             {
-                return b ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4CAF50")) : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F44336"));
+                if (value is bool b)
+                {
+                    return new SolidColorBrush((Color)ColorConverter.ConvertFromString(b ? "#4CAF50" : "#F44336"));
+                }
             }
-            return Brushes.Gray;
+            catch { }
+
+            return new SolidColorBrush(Colors.Gray);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using TradePro.Services;
 
 namespace TradePro
 {
@@ -56,6 +57,23 @@ namespace TradePro
 
             try
             {
+                // Try TCP login first (local fast path)
+                try
+                {
+                    using var tcp = new TcpClientService("127.0.0.1", 6000);
+                    var req = new { action = "login", username = username, password = password };
+                    var loginResult = await tcp.SendRequestAsync<LoginResult>(req);
+                    if (loginResult != null && !string.IsNullOrEmpty(loginResult.Username))
+                    {
+                        var welcome = new WelcomeWindow(loginResult.Username, loginResult.Balance, loginResult.UserId);
+                        welcome.Show();
+                        this.Close();
+                        return;
+                    }
+                }
+                catch { /* fall back to HTTP */ }
+
+                // Fallback: HTTP POST /api/login
                 var payload = new { username = username, password = password };
                 var resp = await _http.PostAsJsonAsync("/api/login", payload);
                 if (!resp.IsSuccessStatusCode)
@@ -81,8 +99,8 @@ namespace TradePro
                 }
 
                 // Success: open main welcome window with data from server
-                var welcome = new WelcomeWindow(result.Username, result.Balance, result.UserId);
-                welcome.Show();
+                var welcome2 = new WelcomeWindow(result.Username, result.Balance, result.UserId);
+                welcome2.Show();
                 this.Close();
             }
             catch (HttpRequestException)
@@ -115,6 +133,23 @@ namespace TradePro
 
             try
             {
+                // Try TCP register first
+                try
+                {
+                    using var tcp = new TcpClientService("127.0.0.1", 6000);
+                    var req = new { action = "register", username = username, password = password };
+                    var regResult = await tcp.SendRequestAsync<RegisterResult>(req);
+                    if (regResult != null && !string.IsNullOrEmpty(regResult.Message))
+                    {
+                        ShowStatus("Registro exitoso. Ahora puede iniciar sesión.");
+                        LoginTabButton_Click(null, null);
+                        LoginUsername.Text = username;
+                        LoginPassword.Password = string.Empty;
+                        return;
+                    }
+                }
+                catch { /* fall back to HTTP */ }
+
                 var payload = new { username = username, password = password };
                 var resp = await _http.PostAsJsonAsync("/api/register", payload);
                 if (!resp.IsSuccessStatusCode)
@@ -158,6 +193,11 @@ namespace TradePro
             public string Username { get; set; } = string.Empty;
             public decimal Balance { get; set; }
             public int UserId { get; set; }
+        }
+
+        private class RegisterResult
+        {
+            public string Message { get; set; } = string.Empty;
         }
     }
 }

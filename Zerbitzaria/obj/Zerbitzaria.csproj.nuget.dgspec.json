@@ -54,6 +54,10 @@
               "target": "Package",
               "version": "[4.0.2, )"
             },
+            "Microsoft.AspNetCore.SignalR.Protocols.MessagePack": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.0, )"

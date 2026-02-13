@@ -183,3 +183,7 @@ D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspac
 D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
 D:\reku\TradePro\Zerbitzaria\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\MessagePack.dll
+D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\MessagePack.Annotations.dll
+D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\Microsoft.AspNetCore.SignalR.Protocols.MessagePack.dll
+D:\reku\TradePro\Zerbitzaria\bin\Debug\net8.0\Microsoft.NET.StringTools.dll

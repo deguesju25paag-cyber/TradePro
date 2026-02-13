@@ -18,7 +18,8 @@ builder.WebHost.UseUrls("http://localhost:5000");
 // Add services
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=zerbitzaria.db"));
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSignalR();
+// Add SignalR with MessagePack for compact payloads
+builder.Services.AddSignalR().AddMessagePackProtocol();
 
 // Add HttpClient factory and background price updater service
 builder.Services.AddHttpClient();
@@ -30,6 +31,9 @@ builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
 builder.Services.AddHostedService<Zerbitzaria.Services.TcpServerHostedService>();
 
 var app = builder.Build();
+
+// SignalR endpoint
+app.MapHub<UpdatesHub>("/updates");
 
 // Helper to ensure DB migrations are applied and seed minimal data if needed
 async Task ApplyMigrationsAndSeedAsync()

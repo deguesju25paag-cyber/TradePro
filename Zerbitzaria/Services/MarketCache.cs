@@ -1,42 +1,47 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Collections.Concurrent;
+using Zerbitzaria.Dtos;
 
 namespace Zerbitzaria.Services
 {
-    // Lightweight thread-safe in-memory cache for market data
+    // High-performance in-memory market cache using ConcurrentDictionary and snapshot semantics.
     public sealed class MarketCache
     {
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
-        private List<object> _items = new List<object>();
+        private readonly ConcurrentDictionary<string, MarketDto> _map = new(StringComparer.OrdinalIgnoreCase);
         private DateTime _lastUpdated = DateTime.MinValue;
 
-        public bool HasData
+        public bool HasData => !_map.IsEmpty;
+
+        // Returns a snapshot list of current markets
+        public IReadOnlyList<MarketDto> GetAll()
         {
-            get
+            var arr = new List<MarketDto>(_map.Count);
+            foreach (var kv in _map)
             {
-                _lock.EnterReadLock();
-                try { return _items != null && _items.Count > 0; }
-                finally { _lock.ExitReadLock(); }
+                arr.Add(kv.Value);
             }
+            return arr;
         }
 
-        public IReadOnlyList<object> GetAll()
+        // Replace all entries atomically (best-effort) - used when updating from external feed
+        public void SetAll(IEnumerable<MarketDto> items)
         {
-            _lock.EnterReadLock();
-            try { return _items.ToArray(); }
-            finally { _lock.ExitReadLock(); }
+            if (items == null) return;
+            _map.Clear();
+            foreach (var it in items)
+            {
+                _map[it.Symbol] = it;
+            }
+            _lastUpdated = DateTime.UtcNow;
         }
 
-        public void SetAll(IEnumerable<object> items)
+        // Update or add a single market entry
+        public void Upsert(MarketDto dto)
         {
-            _lock.EnterWriteLock();
-            try
-            {
-                _items = new List<object>(items ?? Array.Empty<object>());
-                _lastUpdated = DateTime.UtcNow;
-            }
-            finally { _lock.ExitWriteLock(); }
+            if (dto == null) return;
+            _map.AddOrUpdate(dto.Symbol, dto, (k, v) => dto);
+            _lastUpdated = DateTime.UtcNow;
         }
 
         public DateTime LastUpdatedUtc => _lastUpdated;

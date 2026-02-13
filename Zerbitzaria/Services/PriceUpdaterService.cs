@@ -10,181 +10,253 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Zerbitzaria.Data;
 using Zerbitzaria.Models;
+using Zerbitzaria.Dtos;
+using System.Net.WebSockets;
+using System.Text.Json;
+using System.Text;
+using System.Globalization;
+using System.Collections.Concurrent;
+using Microsoft.AspNetCore.SignalR;
+using Zerbitzaria.Hubs;
 
 namespace Zerbitzaria.Services
 {
-    // Background service that periodically queries CoinGecko for prices and updates Markets table.
+    // Background service that subscribes to a real-time feed (Binance WebSocket) for prices,
+    // updates an in-memory cache, pushes deltas via SignalR and batches DB writes.
     public class PriceUpdaterService : BackgroundService
     {
         private readonly IHttpClientFactory _httpFactory;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly MarketCache _marketCache;
-        private static readonly Dictionary<string, string> _symbolToId = new(StringComparer.OrdinalIgnoreCase)
+        private readonly IHubContext<UpdatesHub> _hubContext;
+
+        // symbols to track
+        private static readonly string[] _symbols = new[]
         {
-            ["BTC"] = "bitcoin",
-            ["ETH"] = "ethereum",
-            ["BNB"] = "binancecoin",
-            ["ADA"] = "cardano",
-            ["DOGE"] = "dogecoin",
-            ["SOL"] = "solana",
-            ["XRP"] = "ripple",
-            ["DOT"] = "polkadot",
-            ["LTC"] = "litecoin",
-            ["BCH"] = "bitcoin-cash",
-            ["LINK"] = "chainlink",
-            ["MATIC"] = "matic-network",
-            ["AVAX"] = "avalanche-2",
-            ["TRX"] = "tron",
-            ["SHIB"] = "shiba-inu",
-            ["UNI"] = "uniswap",
-            ["XLM"] = "stellar",
-            ["ATOM"] = "cosmos",
-            ["FTT"] = "ftx-token",
-            ["EOS"] = "eos",
-            ["AAVE"] = "aave",
-            ["NEAR"] = "near",
-            ["ALGO"] = "algorand",
-            ["FIL"] = "filecoin",
-            ["SUSHI"] = "sushi",
-            ["ICP"] = "internet-computer",
-            ["KSM"] = "kusama",
-            ["SNX"] = "havven",
-            ["GRT"] = "the-graph",
-            ["MKR"] = "maker"
+            "BTC","ETH","BNB","ADA","DOGE","SOL","XRP","DOT","LTC","BCH","LINK","MATIC","AVAX","TRX","SHIB","UNI","XLM","ATOM","FTT","EOS"
         };
 
-        public PriceUpdaterService(IHttpClientFactory httpFactory, IServiceScopeFactory scopeFactory, MarketCache marketCache)
+        // buffer for pending DB writes (symbol -> latest dto)
+        private readonly ConcurrentDictionary<string, MarketDto> _pendingDb = new ConcurrentDictionary<string, MarketDto>(StringComparer.OrdinalIgnoreCase);
+
+        public PriceUpdaterService(IHttpClientFactory httpFactory, IServiceScopeFactory scopeFactory, MarketCache marketCache, IHubContext<UpdatesHub> hubContext)
         {
             _httpFactory = httpFactory;
             _scopeFactory = scopeFactory;
             _marketCache = marketCache;
+            _hubContext = hubContext;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var client = _httpFactory.CreateClient();
-            // Set a User-Agent so CoinGecko doesn't reject the request
-            try
-            {
-                if (!client.DefaultRequestHeaders.UserAgent.Any())
-                {
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
-                }
-            }
-            catch { }
-
-            // Use a shorter poll interval for near-real-time updates but handle rate limits
-            var basePollInterval = TimeSpan.FromSeconds(15);
-            var pollInterval = basePollInterval;
-            int backoffSeconds = 0;
-
-            // perform an immediate fetch at startup to populate cache quickly
-            try
-            {
-                await TryFetchAndUpdateAsync(client, stoppingToken);
-            }
-            catch { }
+            // Start a periodic DB flush task
+            var flushTask = Task.Run(() => PeriodicFlushLoopAsync(TimeSpan.FromSeconds(5), stoppingToken));
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await TryFetchAndUpdateAsync(client, stoppingToken);
+                    await RunBinanceFeedAsync(stoppingToken).ConfigureAwait(false);
                 }
-                catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("PriceUpdater error: " + ex.Message);
+                    Console.WriteLine("PriceUpdater feed error: " + ex.Message);
+                    // fallback: try a quick CoinGecko poll to populate cache if WS fails
+                    try { await QuickCoinGeckoFetchAsync(stoppingToken); } catch { }
+                    // wait a bit before reconnect
+                    try { await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); } catch { break; }
                 }
+            }
 
-                try { await Task.Delay(pollInterval, stoppingToken); } catch (TaskCanceledException) { break; }
+            // ensure pending flushed
+            await FlushPendingToDbAsync(stoppingToken).ConfigureAwait(false);
+            try { await flushTask.ConfigureAwait(false); } catch { }
+        }
+
+        private async Task RunBinanceFeedAsync(CancellationToken ct)
+        {
+            // Build stream URL for combined ticker streams
+            var pairs = _symbols.Select(s => (s + "USDT").ToLowerInvariant() + "@ticker");
+            var url = "wss://stream.binance.com:9443/stream?streams=" + string.Join('/', pairs);
+
+            using var ws = new ClientWebSocket();
+            ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromHours(1)); // force reconnect occasionally
+
+            await ws.ConnectAsync(new Uri(url), cts.Token).ConfigureAwait(false);
+            Console.WriteLine("Connected to Binance websocket for symbols: " + string.Join(',', _symbols));
+
+            var buffer = new ArraySegment<byte>(new byte[16 * 1024]);
+            var sb = new StringBuilder();
+
+            while (!cts.IsCancellationRequested && ws.State == WebSocketState.Open)
+            {
+                sb.Clear();
+                WebSocketReceiveResult res;
+                do
+                {
+                    res = await ws.ReceiveAsync(buffer, cts.Token).ConfigureAwait(false);
+                    if (res.MessageType == WebSocketMessageType.Close) break;
+                    sb.Append(Encoding.UTF8.GetString(buffer.Array!, 0, res.Count));
+                } while (!res.EndOfMessage);
+
+                if (res.MessageType == WebSocketMessageType.Close) break;
+
+                var msg = sb.ToString();
+                if (string.IsNullOrWhiteSpace(msg)) continue;
+
+                try
+                {
+                    using var doc = JsonDocument.Parse(msg);
+                    var root = doc.RootElement;
+                    // combined stream: { "stream": "btcusdt@ticker", "data": { ... } }
+                    JsonElement dataEl = root;
+                    if (root.TryGetProperty("data", out var d)) dataEl = d;
+
+                    if (dataEl.ValueKind == JsonValueKind.Object)
+                    {
+                        if (dataEl.TryGetProperty("s", out var sEl) && sEl.ValueKind == JsonValueKind.String)
+                        {
+                            var pair = sEl.GetString() ?? string.Empty; // e.g., BTCUSDT
+                            var symbol = pair.EndsWith("USDT", StringComparison.OrdinalIgnoreCase) ? pair.Substring(0, pair.Length - 4) : pair;
+
+                            // parse price and change percent
+                            decimal price = 0m; double change = 0;
+                            if (dataEl.TryGetProperty("c", out var cEl) && cEl.ValueKind == JsonValueKind.String)
+                            {
+                                var sPrice = cEl.GetString();
+                                if (!string.IsNullOrEmpty(sPrice) && decimal.TryParse(sPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)) price = p;
+                            }
+                            if (dataEl.TryGetProperty("P", out var pEl) && pEl.ValueKind == JsonValueKind.String)
+                            {
+                                var sChange = pEl.GetString();
+                                if (!string.IsNullOrEmpty(sChange) && double.TryParse(sChange, NumberStyles.Any, CultureInfo.InvariantCulture, out var ch)) change = ch;
+                            }
+
+                            var dto = new MarketDto(symbol, price, change, change >= 0);
+
+                            // update cache and pending db
+                            _marketCache.Upsert(dto);
+                            _pendingDb[symbol] = dto;
+
+                            // push to SignalR clients (delta)
+                            try
+                            {
+                                _ = _hubContext.Clients.All.SendAsync("MarketUpdated", dto, ct);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Binance message parse error: " + ex.Message);
+                }
+            }
+
+            try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None).ConfigureAwait(false); } catch { }
+        }
+
+        private async Task QuickCoinGeckoFetchAsync(CancellationToken ct)
+        {
+            // Quick fallback to fetch prices for tracked symbols
+            var client = _httpFactory.CreateClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TradeProServer/1.0");
+            var ids = string.Join(',', _symbols.Select(s => s.ToLowerInvariant()));
+            var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(8));
+
+            var resp = await client.GetAsync(url, cts.Token).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode) return;
+
+            var json = await resp.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(json);
+
+            var list = new List<MarketDto>();
+            foreach (var s in _symbols)
+            {
+                var id = s.ToLowerInvariant();
+                if (!doc.RootElement.TryGetProperty(id, out var el)) continue;
+                decimal price = 0m; double change = 0;
+                if (el.TryGetProperty("usd", out var pEl) && pEl.TryGetDecimal(out var dec)) price = dec;
+                if (el.TryGetProperty("usd_24h_change", out var cEl) && cEl.TryGetDouble(out var cd)) change = cd;
+                var dto = new MarketDto(s, price, change, change >= 0);
+                list.Add(dto);
+                _marketCache.Upsert(dto);
+                _pendingDb[s] = dto;
+                try { _ = _hubContext.Clients.All.SendAsync("MarketUpdated", dto); } catch { }
+            }
+
+            // do not persist immediately; periodic flush will save
+        }
+
+        private async Task PeriodicFlushLoopAsync(TimeSpan interval, CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(interval, ct).ConfigureAwait(false);
+                    await FlushPendingToDbAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("PriceUpdater flush error: " + ex.Message);
+                }
             }
         }
 
-        private async Task TryFetchAndUpdateAsync(HttpClient client, CancellationToken stoppingToken)
+        private async Task FlushPendingToDbAsync(CancellationToken ct)
         {
-            // build ids param
-            var ids = string.Join(",", _symbolToId.Values.Distinct());
-            var url = $"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true";
+            if (_pendingDb.IsEmpty) return;
 
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(10)); // avoid hanging requests
+            // take snapshot
+            var snapshot = _pendingDb.ToArray();
+            _pendingDb.Clear();
 
-            var resp = await client.GetAsync(url, cts.Token);
-            if (!resp.IsSuccessStatusCode)
-            {
-                if (resp.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                {
-                    // Respect Retry-After header if present
-                    var retryAfter = resp.Headers.RetryAfter;
-                    var backoff = 30;
-                    if (retryAfter != null)
-                    {
-                        if (retryAfter.Delta.HasValue) backoff = (int)retryAfter.Delta.Value.TotalSeconds;
-                        else if (retryAfter.Date.HasValue) backoff = (int)Math.Max(1, (retryAfter.Date.Value - DateTimeOffset.UtcNow).TotalSeconds);
-                    }
-                    Console.WriteLine($"PriceUpdater: rate limited, backing off {backoff}s");
-                    try { await Task.Delay(TimeSpan.FromSeconds(backoff), stoppingToken); } catch { }
-                }
-                return;
-            }
-
-            var json = await resp.Content.ReadAsStringAsync(cancellationToken: stoppingToken);
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-
-            var updates = new List<(string Symbol, decimal Price, double Change)>();
-            foreach (var kv in _symbolToId)
-            {
-                var symbol = kv.Key; var id = kv.Value;
-                if (!doc.RootElement.TryGetProperty(id, out var el)) continue;
-                if (!el.TryGetProperty("usd", out var priceEl) || !priceEl.TryGetDecimal(out var price)) continue;
-                double change = 0;
-                if (el.TryGetProperty("usd_24h_change", out var changeEl)) change = changeEl.GetDouble();
-                updates.Add((symbol, price, change));
-            }
-
-            if (updates.Count == 0) return;
-
-            // update DB in a single batch to reduce roundtrips
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var existing = await db.Markets.ToListAsync(stoppingToken);
+            // load existing markets for the snapshot symbols
+            var syms = snapshot.Select(kv => kv.Key).ToList();
+            var existing = await db.Markets.Where(m => syms.Contains(m.Symbol)).ToListAsync(ct).ConfigureAwait(false);
             var mapExisting = existing.ToDictionary(m => m.Symbol, StringComparer.OrdinalIgnoreCase);
-            var nowList = new List<object>();
             var updated = false;
 
-            foreach (var u in updates)
+            foreach (var kv in snapshot)
             {
-                if (mapExisting.TryGetValue(u.Symbol, out var ent))
+                var symbol = kv.Key;
+                var dto = kv.Value;
+                if (mapExisting.TryGetValue(symbol, out var ent))
                 {
-                    if (ent.Price != u.Price || ent.Change != u.Change)
+                    if (ent.Price != dto.Price || ent.Change != dto.Change)
                     {
-                        ent.Price = u.Price;
-                        ent.Change = u.Change;
-                        ent.IsUp = u.Change >= 0;
+                        ent.Price = dto.Price;
+                        ent.Change = dto.Change;
+                        ent.IsUp = dto.IsUp;
                         updated = true;
                     }
                 }
                 else
                 {
-                    db.Markets.Add(new Market { Symbol = u.Symbol, Price = u.Price, Change = u.Change, IsUp = u.Change >= 0 });
+                    db.Markets.Add(new Market { Symbol = symbol, Price = dto.Price, Change = dto.Change, IsUp = dto.IsUp });
                     updated = true;
                 }
-
-                nowList.Add(new { Symbol = u.Symbol, Price = u.Price, Change = u.Change, IsUp = u.Change >= 0 });
             }
 
             if (updated)
             {
-                await db.SaveChangesAsync(stoppingToken);
+                try { await db.SaveChangesAsync(ct).ConfigureAwait(false); } catch (Exception ex) { Console.WriteLine("DB save error: " + ex.Message); }
             }
-
-            // update in-memory cache
-            try { _marketCache?.SetAll(nowList); } catch { }
         }
     }
 }

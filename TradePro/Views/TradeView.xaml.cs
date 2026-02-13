@@ -21,6 +21,8 @@ namespace TradePro.Views
         private static readonly HttpClient _cg = new HttpClient();
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
+        private readonly RealtimeService _realtime;
+
         // Larger mapping for many assets
         private static readonly Dictionary<string, string> _symbolToId = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -61,6 +63,9 @@ namespace TradePro.Views
             InitializeComponent();
             this.Loaded += TradeView_Loaded;
 
+            _realtime = new RealtimeService();
+            _realtime.MarketUpdated += Realtime_MarketUpdated;
+
             // wire pagination buttons
             try
             {
@@ -74,10 +79,35 @@ namespace TradePro.Views
             catch { }
         }
 
+        private void Realtime_MarketUpdated(Market m)
+        {
+            // Update the market in _allMarkets if present
+            try
+            {
+                var existing = _allMarkets.FirstOrDefault(x => string.Equals(x.Symbol, m.Symbol, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    existing.Price = m.Price;
+                    existing.Change = m.Change;
+                    existing.IsUp = m.IsUp;
+                }
+                else
+                {
+                    _allMarkets.Add(m);
+                    _allMarkets = _allMarkets.OrderBy(x => x.Symbol).ToList();
+                }
+
+                // refresh UI page on UI thread
+                Dispatcher.Invoke(() => ShowPage());
+            }
+            catch { }
+        }
+
         private async void TradeView_Loaded(object sender, RoutedEventArgs e)
         {
             this.Loaded -= TradeView_Loaded;
             await PopulateFromApiAsync();
+            await _realtime.StartAsync();
         }
 
         public async Task PopulateFromApiAsync()

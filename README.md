@@ -139,8 +139,4 @@ Zerbitzaria/Hubs/      -> SignalR (eguneraketak)
 - Bilaketa aurreratua aktiboen zerrendan.
 - Trade‑en historiaren xehetasunak.
 
----
 
-## 📄 Lizentzia
-
-Barne‑erabilera / demo. Egokitu zure beharren arabera.

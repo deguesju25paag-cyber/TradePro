@@ -1,87 +1,87 @@
 # TradePro
 
-Una plataforma de trading **WPF + .NET 8** con servidor API (`Zerbitzaria`) y cliente de escritorio (`TradePro`). Incluye precios en vivo (CoinGecko/Binance), panel de control, lista de activos, detalle de mercado con gráfico, y gestión básica de posiciones/trades.
+**WPF + .NET 8**-ko trading plataforma bat, API zerbitzariarekin (`Zerbitzaria`) eta mahaigaineko bezeroarekin (`TradePro`). Prezioak zuzenean (CoinGecko/Binance), kontrol panela, aktiboen zerrenda, grafikoarekin merkatu‑xehetasunak eta posizio/tradeen oinarrizko kudeaketa ditu.
 
 ---
 
-## ✅ Requisitos
+## ✅ Baldintzak
 
 - **Windows** (WPF)
 - **.NET SDK 8.x**
-- Visual Studio con workload **.NET Desktop Development** (recomendado)
+- Visual Studio **.NET Desktop Development** workloadarekin (gomendatua)
 
 ---
 
-## 🚀 Cómo arrancar (rápido)
+## 🚀 Nola abiarazi (azkar)
 
-> Abrir **dos terminales** en la raíz del repo.
+> Ireki **bi terminal** repoaren erroan.
 
-### 1) Iniciar servidor
+### 1) Zerbitzaria abiarazi
 ```powershell
 # API backend
  dotnet run --project .\Zerbitzaria\Zerbitzaria.csproj
 ```
 
-### 2) Iniciar cliente
+### 2) Bezeroa abiarazi
 ```powershell
-# App WPF
+# WPF aplikazioa
  dotnet run --project .\TradePro\TradePro.csproj
 ```
 
-El servidor escucha en: `http://localhost:5000`
+Zerbitzaria hemen entzuten du: `http://localhost:5000`
 
 ---
 
-## 🔑 Usuario de prueba
+## 🔑 Proba‑erabiltzailea
 
-- **Usuario:** `admin`
-- **Contraseña:** `admin`
+- **Erabiltzailea:** `admin`
+- **Pasahitza:** `admin`
 
-Se crea automáticamente al iniciar por primera vez.
+Lehen abiaraztean automatikoki sortzen da.
 
 ---
 
-## 🧱 Arquitectura (alto nivel)
+## 🧱 Arkitektura (goi‑mailakoa)
 
 ```
-TradePro/              -> Cliente WPF (.NET 8)
+TradePro/              -> WPF bezeroa (.NET 8)
 Zerbitzaria/           -> API backend (Minimal API)
-Zerbitzaria/Services/  -> Background services (precios, cache)
-Zerbitzaria/Hubs/      -> SignalR (actualizaciones)
+Zerbitzaria/Services/  -> Background zerbitzuak (prezioak, cache)
+Zerbitzaria/Hubs/      -> SignalR (eguneraketak)
 ```
 
-**Cliente**:
-- WPF con vistas: `DashboardView`, `TradeView`, `MarketDetailView`, `PortfolioView`.
-- Consumo de API REST (`/api/*`).
+**Bezeroa**:
+- WPF ikuspegiekin: `DashboardView`, `TradeView`, `MarketDetailView`, `PortfolioView`.
+- REST API kontsumoa (`/api/*`).
 
-**Servidor**:
+**Zerbitzaria**:
 - Minimal API (REST)
-- SQLite local (`zerbitzaria.db`)
-- Servicios en background (`PriceUpdaterService`)
-- Cache en memoria (`MarketCache`)
+- SQLite lokala (`zerbitzaria.db`)
+- Background zerbitzuak (`PriceUpdaterService`)
+- Memoria‑cachea (`MarketCache`)
 
 ---
 
-## 📌 Funciones principales
+## 📌 Funtzio nagusiak
 
 ### ✔ Dashboard
-- Saldo, activos destacados, posiciones abiertas.
+- Saldoa, aktibo nabarmenak, posizio irekiak.
 
 ### ✔ Trade
-- Listado de activos con paginación y UI rica.
-- Click en activo abre la vista de gráfico.
+- Aktiboen zerrenda orrialdekatzearekin eta UI aberatsarekin.
+- Aktiboan klik egiteak grafiko‑ikuspegia irekitzen du.
 
 ### ✔ Market Detail
-- Gráfico de velas (Binance)
-- Precio en vivo
-- Apertura de posiciones con margin y leverage
+- Kandela‑grafikoa (Binance)
+- Prezio zuzena
+- Posizioen irekiera margin eta leveragearekin
 
-### ✔ Portfolio (en progreso)
-- Preparado para mostrar posiciones abiertas y PnL.
+### ✔ Portfolio (garapenean)
+- Posizio irekiak eta PnL erakusteko prestatuta.
 
 ---
 
-## 🧩 Endpoints principales (API)
+## 🧩 Endpoint nagusiak (API)
 
 - `POST /api/login`
 - `POST /api/register`
@@ -89,12 +89,12 @@ Zerbitzaria/Hubs/      -> SignalR (actualizaciones)
 - `GET /api/users/{userId}/dashboard`
 - `GET /api/users/{userId}/positions`
 - `GET /api/users/{userId}/trades`
-- `POST /api/users/{userId}/trades` (abrir posición)
+- `POST /api/users/{userId}/trades` (posizioa ireki)
 - `POST /api/users/{userId}/trades/{tradeId}/close`
 
 ---
 
-## 📈 Cómo se calcula el PnL
+## 📈 PnL nola kalkulatzen den
 
 - **Exposure** = `Margin * Leverage`
 - **Quantity** = `Exposure / EntryPrice`
@@ -103,44 +103,44 @@ Zerbitzaria/Hubs/      -> SignalR (actualizaciones)
 
 ---
 
-## 🧠 Datos y almacenamiento
+## 🧠 Datuak eta biltegiratzea
 
-- Base de datos SQLite: `zerbitzaria.db`
-- Se crea automáticamente en el primer arranque.
-- Si hay errores de tablas, elimina la DB y vuelve a arrancar el servidor.
-
----
-
-## 🛠 Solución de problemas
-
-### ❗ Error: `SQLite Error 1: no such table`
-1. Parar servidor.
-2. Eliminar `zerbitzaria.db`.
-3. Arrancar de nuevo el servidor.
-
-### ❗ No aparecen precios
-- Verifica conexión a internet.
-- CoinGecko puede aplicar rate-limit (esperar unos segundos).
+- SQLite datu‑basea: `zerbitzaria.db`
+- Lehen abiaraztean automatikoki sortzen da.
+- Taulen akatsak badaude, ezabatu DB eta berrabiarazi zerbitzaria.
 
 ---
 
-## 🧪 Tips para desarrollo
+## 🛠 Arazo‑konponbidea
 
-- Recomendado abrir en **Visual Studio**.
-- Habilita breakpoints en `MarketDetailView.xaml.cs` para depurar apertura de trades.
-- El servidor y cliente pueden ejecutarse en paralelo desde VS con **Multiple Startup Projects**.
+### ❗ Errorea: `SQLite Error 1: no such table`
+1. Zerbitzaria gelditu.
+2. `zerbitzaria.db` ezabatu.
+3. Zerbitzaria berriro abiarazi.
 
----
-
-## ✨ Próximas mejoras (ideas)
-
-- Actualización en tiempo real de PnL en dashboard/portfolio.
-- Cierre de posiciones desde UI.
-- Búsqueda avanzada en la lista de activos.
-- Historial detallado de trades.
+### ❗ Prezioak ez dira agertzen
+- Egiaztatu internet‑konexioa.
+- CoinGecko‑k rate‑limit aplika dezake (itxaron segundo batzuk).
 
 ---
 
-## 📄 Licencia
+## 🧪 Garapenerako aholkuak
 
-Uso interno / demo. Ajusta según tus necesidades.
+- **Visual Studio**-n irekitzea gomendatua.
+- Gaitu breakpoints `MarketDetailView.xaml.cs`-en trade‑irekitzea arazteko.
+- Zerbitzaria eta bezeroa paraleloan exekuta daitezke VS‑tik **Multiple Startup Projects** erabiliz.
+
+---
+
+## ✨ Hurrengo hobekuntzak (ideiak)
+
+- PnL‑ren eguneraketa denbora errealean dashboard/portfolio‑n.
+- Posizioen itxiera UI‑tik.
+- Bilaketa aurreratua aktiboen zerrendan.
+- Trade‑en historiaren xehetasunak.
+
+---
+
+## 📄 Lizentzia
+
+Barne‑erabilera / demo. Egokitu zure beharren arabera.

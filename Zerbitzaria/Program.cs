@@ -552,3 +552,7 @@ app.MapGet("/api/users/{userId}/dashboard", async (ApplicationDbContext db, int 
 });
 
 app.Run();
+
+public partial class Program
+{
+}

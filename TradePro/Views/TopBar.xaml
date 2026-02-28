@@ -19,11 +19,11 @@
 
             <!-- Navigation -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Column="1" Margin="8,0">
-                <Button x:Name="DashboardButton" Content="Dashboard" Click="DashboardButton_Click" Background="#0F1313" Foreground="#2ECC71" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
-                <Button x:Name="TradeButton" Content="Trade" Click="TradeButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
-                <Button x:Name="HistoryButton" Content="History" Click="HistoryButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
-                <Button x:Name="StatisticsButton" Content="Statistics" Click="StatisticsButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
-                <Button x:Name="ProfileButton" Content="Profile" Click="ProfileButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" />
+                <Button x:Name="DashboardButton" Content="Aginte-panela" Click="DashboardButton_Click" Background="#0F1313" Foreground="#2ECC71" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="TradeButton" Content="Trukea" Click="TradeButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="HistoryButton" Content="Historia" Click="HistoryButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="StatisticsButton" Content="Estatistikak" Click="StatisticsButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" Margin="0,0,8,0" />
+                <Button x:Name="ProfileButton" Content="Profila" Click="ProfileButton_Click" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" Padding="8" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">

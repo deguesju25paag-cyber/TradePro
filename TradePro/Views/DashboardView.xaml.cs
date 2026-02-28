@@ -306,7 +306,7 @@ namespace TradePro.Views
 
             if (welcomeText != null)
             {
-                welcomeText.Text = !string.IsNullOrEmpty(username) ? $"Bienvenido, {username}" : "Bienvenido";
+                welcomeText.Text = !string.IsNullOrEmpty(username) ? $"Ongi etorri, {username}" : "Ongi etorri";
             }
 
             // Quickly render placeholders and start live price fetch immediately
@@ -341,17 +341,17 @@ namespace TradePro.Views
                     }
                     else
                     {
-                        if (dashboardStatus != null) dashboardStatus.Text = "No se obtuvieron mercados desde el servidor.";
+                        if (dashboardStatus != null) dashboardStatus.Text = "Ez dira merkatuak zerbitzaritik lortu.";
                     }
                 }
                 else
                 {
-                    if (mResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obtener mercados: " + mResp.StatusCode.ToString();
+                    if (mResp != null && dashboardStatus != null) dashboardStatus.Text = "Errorea merkatuak eskuratzean: " + mResp.StatusCode.ToString();
                 }
             }
             catch (Exception ex)
             {
-                if (dashboardStatus != null) dashboardStatus.Text = "Error fetching markets: " + ex.Message;
+                if (dashboardStatus != null) dashboardStatus.Text = "Errorea merkatuak eskuratzean: " + ex.Message;
             }
 
             // Await positions and user profile
@@ -365,16 +365,16 @@ namespace TradePro.Views
                         var stream = await pResp.Content.ReadAsStreamAsync();
                         var list = await JsonSerializer.DeserializeAsync<List<Position>>(stream, _json_options);
                         if (list != null) positions = list.Where(p => p.IsOpen).ToList();
-                        else if (dashboardStatus != null) dashboardStatus.Text = "No se pudieron deserializar posiciones recibidas.";
+                        else if (dashboardStatus != null) dashboardStatus.Text = "Ezin izan dira jasotako posizioak deserializatu.";
                     }
                     else
                     {
-                        if (pResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obter posiciones: " + pResp.StatusCode.ToString();
+                        if (pResp != null && dashboardStatus != null) dashboardStatus.Text = "Errorea posizioak eskuratzean: " + pResp.StatusCode.ToString();
                     }
                 }
                 catch (Exception ex)
                 {
-                    if (dashboardStatus != null) dashboardStatus.Text = "Error fetching positions: " + ex.Message;
+                    if (dashboardStatus != null) dashboardStatus.Text = "Errorea posizioak eskuratzean: " + ex.Message;
                 }
 
                 try
@@ -391,12 +391,12 @@ namespace TradePro.Views
                     }
                     else
                     {
-                        if (uResp != null && dashboardStatus != null) dashboardStatus.Text = "Error al obtener perfil usuario: " + uResp.StatusCode.ToString();
+                        if (uResp != null && dashboardStatus != null) dashboardStatus.Text = "Errorea erabiltzaile-profila eskuratzean: " + uResp.StatusCode.ToString();
                     }
                 }
                 catch (Exception ex)
                 {
-                    if (dashboardStatus != null) dashboardStatus.Text = "Error fetching user: " + ex.Message;
+                    if (dashboardStatus != null) dashboardStatus.Text = "Errorea erabiltzailea eskuratzean: " + ex.Message;
                 }
             }
 
@@ -429,7 +429,7 @@ namespace TradePro.Views
                 }
                 catch (Exception ex)
                 {
-                    if (dashboardStatus != null) dashboardStatus.Text = "Error reading local DB: " + ex.Message;
+                    if (dashboardStatus != null) dashboardStatus.Text = "Errorea tokiko datu-basea irakurtzean: " + ex.Message;
                 }
             }
 
@@ -498,7 +498,7 @@ namespace TradePro.Views
                 _positionPnlMap.Clear();
 
                 var openPositions = positions.Where(p => p.IsOpen).ToList();
-                openCountText.Text = $"Posiciones: {openPositions.Count}";
+                openCountText.Text = $"Posizioak: {openPositions.Count}";
                 if (openPositions.Count == 0)
                 {
                     positionsEmpty.Visibility = Visibility.Visible;
@@ -725,7 +725,7 @@ namespace TradePro.Views
             const double actionButtonWidth = 64;
             if (p.TradeId.HasValue)
             {
-                var closeBtn = new Button { Content = "Cerrar", Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(6, 0, 0, 0), Width = actionButtonWidth };
+                var closeBtn = new Button { Content = "Itxi", Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(6, 0, 0, 0), Width = actionButtonWidth };
                 closeBtn.Click += async (s, e) =>
                 {
                     try
@@ -741,7 +741,7 @@ namespace TradePro.Views
                         {
                             var body = string.Empty;
                             try { body = await resp.Content.ReadAsStringAsync(); } catch { }
-                            MessageBox.Show("Error cerrando trade: " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Errorea trade-a ixtean: " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body), "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                     catch
@@ -769,6 +769,13 @@ namespace TradePro.Views
 
             border.Child = grid;
             return border;
+        }
+
+        private static string LocalizeSide(string? side)
+        {
+            if (string.Equals(side, "LONG", StringComparison.OrdinalIgnoreCase)) return "LUZE";
+            if (string.Equals(side, "SHORT", StringComparison.OrdinalIgnoreCase)) return "LABUR";
+            return side ?? string.Empty;
         }
 
         private void StartRealtimeUpdates(TimeSpan interval)

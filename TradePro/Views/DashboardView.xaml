@@ -12,8 +12,8 @@
         <!-- 1) Welcome -->
         <Border Grid.Row="0" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,12">
             <StackPanel Orientation="Vertical">
-                <TextBlock x:Name="WelcomeText" Text="Bienvenido" Foreground="White" FontSize="22" FontWeight="SemiBold" />
-                <TextBlock Text="Panel de control" Foreground="#BDBDBD" FontSize="12" Margin="0,6,0,0" />
+                <TextBlock x:Name="WelcomeText" Text="Ongi etorri" Foreground="White" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock Text="Aginte-panela" Foreground="#BDBDBD" FontSize="12" Margin="0,6,0,0" />
                 <TextBlock x:Name="DashboardStatusText" Text="" Foreground="#FF7A00" FontSize="12" Margin="0,6,0,0" Visibility="Collapsed" />
             </StackPanel>
         </Border>
@@ -28,7 +28,7 @@
             <!-- Balance box -->
             <Border Grid.Column="0" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,12,0">
                 <StackPanel>
-                    <TextBlock Text="Balance total" Foreground="#BDBDBD" FontSize="12" />
+                    <TextBlock Text="Saldo osoa" Foreground="#BDBDBD" FontSize="12" />
                     <TextBlock x:Name="UserBalanceText" Text="$0.00" Foreground="White" FontSize="26" FontWeight="Bold" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
@@ -36,11 +36,11 @@
             <!-- Assets grid (two rows) -->
             <Border Grid.Column="1" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="12">
                 <StackPanel>
-                    <TextBlock Text="Activos" Foreground="White" FontSize="14" FontWeight="SemiBold" />
+                    <TextBlock Text="Aktiboak" Foreground="White" FontSize="14" FontWeight="SemiBold" />
                     <UniformGrid x:Name="AssetsGrid" Rows="2" Columns="3" Margin="0,12,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <!-- Items populated from code-behind via WelcomeWindow.PopulateDashboard (creates simple UIElements) -->
                     </UniformGrid>
-                    <TextBlock x:Name="AssetsHint" Text="Mostrando activos principales" Foreground="#AAAAAA" FontSize="11" Margin="0,10,0,0" />
+                    <TextBlock x:Name="AssetsHint" Text="Aktibo nagusiak erakusten" Foreground="#AAAAAA" FontSize="11" Margin="0,10,0,0" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -49,8 +49,8 @@
         <Border Grid.Row="2" Background="#0F1313" BorderBrush="#222" BorderThickness="1" CornerRadius="10" Padding="12">
             <StackPanel>
                 <DockPanel>
-                    <TextBlock Text="Posiciones abiertas" Foreground="White" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left" />
-                    <TextBlock x:Name="OpenPositionsCountText" Text="Posiciones: 0" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+                    <TextBlock Text="Irekitako posizioak" Foreground="White" FontSize="16" FontWeight="SemiBold" DockPanel.Dock="Left" />
+                    <TextBlock x:Name="OpenPositionsCountText" Text="Posizioak: 0" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Right" DockPanel.Dock="Right" />
                 </DockPanel>
 
                 <!-- Header row for columns -->
@@ -62,18 +62,18 @@
                         <ColumnDefinition Width="120" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Activo" Foreground="#AAAAAA" Grid.Column="0" />
-                    <TextBlock Text="Exposure" Foreground="#AAAAAA" Grid.Column="1" HorizontalAlignment="Right" />
-                    <TextBlock Text="Margin" Foreground="#AAAAAA" Grid.Column="2" HorizontalAlignment="Right" />
+                    <TextBlock Text="Aktiboa" Foreground="#AAAAAA" Grid.Column="0" />
+                    <TextBlock Text="Esposizioa" Foreground="#AAAAAA" Grid.Column="1" HorizontalAlignment="Right" />
+                    <TextBlock Text="Marjina" Foreground="#AAAAAA" Grid.Column="2" HorizontalAlignment="Right" />
                     <TextBlock Text="PnL" Foreground="#AAAAAA" Grid.Column="3" HorizontalAlignment="Right" />
-                    <TextBlock Text="Acciones" Foreground="#AAAAAA" Grid.Column="4" HorizontalAlignment="Right" />
+                    <TextBlock Text="Ekintzak" Foreground="#AAAAAA" Grid.Column="4" HorizontalAlignment="Right" />
                 </Grid>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
                     <StackPanel x:Name="PositionsStack" />
                 </ScrollViewer>
 
-                <TextBlock x:Name="PositionsEmptyText" Text="No hay posiciones abiertas" Foreground="#AAAAAA" FontSize="12" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,12,0,0" />
+                <TextBlock x:Name="PositionsEmptyText" Text="Ez dago posizio irekirik" Foreground="#AAAAAA" FontSize="12" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
     </Grid>

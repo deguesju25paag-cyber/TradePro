@@ -11,8 +11,8 @@
 
             <!-- Header -->
             <StackPanel Grid.Row="0" HorizontalAlignment="Center">
-                <TextBlock Text="Profile" Foreground="White" FontSize="22" FontWeight="Bold" />
-                <TextBlock Text="Configuracion del perfil" Foreground="#BDBDBD" Margin="0,6,0,12" />
+                <TextBlock Text="Profila" Foreground="White" FontSize="22" FontWeight="Bold" />
+                <TextBlock Text="Profilaren ezarpenak" Foreground="#BDBDBD" Margin="0,6,0,12" />
             </StackPanel>
 
             <!-- Content: narrower column, uses full height and scrolls if necessary -->
@@ -23,30 +23,30 @@
                             <Border Background="#0F1313" CornerRadius="8" Padding="18" Margin="0,0,0,12">
                                 <StackPanel>
 
-                                    <TextBlock Text="Editar perfil" Foreground="#BDBDBD" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <TextBlock Text="Profila editatu" Foreground="#BDBDBD" FontWeight="SemiBold" Margin="0,0,0,6" />
                                     <StackPanel Orientation="Vertical" Margin="0,6,0,0">
-                                        <TextBlock Text="Nuevo nombre de usuario" Foreground="#BDBDBD" FontSize="12" />
+                                        <TextBlock Text="Erabiltzaile-izen berria" Foreground="#BDBDBD" FontSize="12" />
                                         <TextBox x:Name="NewUsernameBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
 
-                                        <TextBlock Text="Nueva contrasena" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
+                                        <TextBlock Text="Pasahitz berria" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
                                         <PasswordBox x:Name="NewPasswordBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
 
-                                        <TextBlock Text="Confirmar contrasena" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
+                                        <TextBlock Text="Pasahitza berretsi" Foreground="#BDBDBD" FontSize="12" Margin="0,12,0,0" />
                                         <PasswordBox x:Name="ConfirmPasswordBox" Background="#121214" Foreground="#E0E0E0" Padding="8" Margin="0,8,0,0" />
 
 
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,16,0,0">
-                                            <Button x:Name="BtnSaveProfile" Content="Guardar cambios" Width="140" Padding="8" Margin="0,0,12,0" />
-                                            <Button x:Name="BtnLogout" Content="Cerrar sesion" Width="120" Padding="8" />
+                                            <Button x:Name="BtnSaveProfile" Content="Aldaketak gorde" Width="140" Padding="8" Margin="0,0,12,0" />
+                                            <Button x:Name="BtnLogout" Content="Saioa itxi" Width="120" Padding="8" />
                                         </StackPanel>
                                     </StackPanel>
 
 
                                     <Separator Margin="0,18,0,18" />
 
-                                    <TextBlock Text="Peligro" Foreground="#F0625D" FontWeight="SemiBold" />
-                                    <TextBlock Text="Eliminar cuenta borrara todos los datos locales y en servidor (si aplica)." Foreground="#BDBDBD" FontSize="12" Margin="0,8,0,12" />
-                                    <Button x:Name="BtnDeleteAccount" Content="Eliminar cuenta" Background="#B71C1C" Foreground="White" Padding="10" Width="160" />
+                                    <TextBlock Text="Arriskua" Foreground="#F0625D" FontWeight="SemiBold" />
+                                    <TextBlock Text="Kontua ezabatzeak tokiko eta zerbitzariko datu guztiak ezabatuko ditu (aplikatzen bada)." Foreground="#BDBDBD" FontSize="12" Margin="0,8,0,12" />
+                                    <Button x:Name="BtnDeleteAccount" Content="Kontua ezabatu" Background="#B71C1C" Foreground="White" Padding="10" Width="160" />
 
 
                                 </StackPanel>

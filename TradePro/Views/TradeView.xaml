@@ -9,9 +9,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Margin="20" Grid.Row="0">
-            <TextBlock Text="Trade - Markets" Foreground="White" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="Trukea - Merkatuak" Foreground="White" FontSize="20" FontWeight="SemiBold" />
             <DockPanel Margin="0,8,0,0">
-                <TextBox x:Name="SearchBox" Width="320" Height="28" VerticalAlignment="Center" ToolTip="Buscar activos" Background="#121214" Foreground="#E0E0E0" Padding="6" />
+                <TextBox x:Name="SearchBox" Width="320" Height="28" VerticalAlignment="Center" ToolTip="Aktiboak bilatu" Background="#121214" Foreground="#E0E0E0" Padding="6" />
             </DockPanel>
         </StackPanel>
 
@@ -22,7 +22,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Listado de activos" Foreground="#BDBDBD" />
+                <TextBlock Text="Aktiboen zerrenda" Foreground="#BDBDBD" />
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
                     <ItemsControl x:Name="AssetsList">
@@ -43,9 +43,9 @@
 
         <!-- Pagination controls -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,20">
-            <Button x:Name="BtnPrev" Content="Anterior" Width="90" Margin="6" />
-            <TextBlock x:Name="PageIndicator" Text="Pagina 1/1" Foreground="#BDBDBD" VerticalAlignment="Center" Margin="6" />
-            <Button x:Name="BtnNext" Content="Siguiente" Width="90" Margin="6" />
+            <Button x:Name="BtnPrev" Content="Aurrekoa" Width="90" Margin="6" />
+            <TextBlock x:Name="PageIndicator" Text="Orria 1/1" Foreground="#BDBDBD" VerticalAlignment="Center" Margin="6" />
+            <Button x:Name="BtnNext" Content="Hurrengoa" Width="90" Margin="6" />
         </StackPanel>
     </Grid>
 </UserControl>

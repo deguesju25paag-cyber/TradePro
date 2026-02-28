@@ -51,7 +51,7 @@ namespace TradePro
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                ShowStatus("Ingrese usuario y contraseña.");
+                ShowStatus("Sartu erabiltzailea eta pasahitza.");
                 return;
             }
 
@@ -82,11 +82,11 @@ namespace TradePro
                     try
                     {
                         var err = await resp.Content.ReadFromJsonAsync<ServerError>(_jsonOptions);
-                        ShowStatus(err?.Message ?? "Usuario o contraseña incorrectos.");
+                        ShowStatus(err?.Message ?? "Erabiltzailea edo pasahitza okerra.");
                     }
                     catch
                     {
-                        ShowStatus("Usuario o contraseña incorrectos.");
+                        ShowStatus("Erabiltzailea edo pasahitza okerra.");
                     }
                     return;
                 }
@@ -94,7 +94,7 @@ namespace TradePro
                 var result = await resp.Content.ReadFromJsonAsync<LoginResult>(_jsonOptions);
                 if (result == null)
                 {
-                    ShowStatus("Respuesta inválida del servidor.");
+                    ShowStatus("Zerbitzariaren erantzun baliogabea.");
                     return;
                 }
 
@@ -105,11 +105,11 @@ namespace TradePro
             }
             catch (HttpRequestException)
             {
-                ShowStatus("No se pudo conectar al servidor. Asegúrate de que Zerbitzaria esté en ejecución.");
+                ShowStatus("Ezin izan da zerbitzariarekin konektatu. Ziurtatu `Zerbitzaria` martxan dagoela.");
             }
             catch (Exception ex)
             {
-                ShowStatus("Error: " + ex.Message);
+                ShowStatus("Errorea: " + ex.Message);
             }
         }
 
@@ -121,13 +121,13 @@ namespace TradePro
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
             {
-                ShowStatus("Complete todos los campos.");
+                ShowStatus("Bete eremu guztiak.");
                 return;
             }
 
             if (password != confirm)
             {
-                ShowStatus("Las contraseñas no coinciden.");
+                ShowStatus("Pasahitzak ez datoz bat.");
                 return;
             }
 
@@ -141,7 +141,7 @@ namespace TradePro
                     var regResult = await tcp.SendRequestAsync<RegisterResult>(req);
                     if (regResult != null && !string.IsNullOrEmpty(regResult.Message))
                     {
-                        ShowStatus("Registro exitoso. Ahora puede iniciar sesión.");
+                        ShowStatus("Erregistroa ondo burutu da. Orain saioa hasi dezakezu.");
                         LoginTabButton_Click(null, null);
                         LoginUsername.Text = username;
                         LoginPassword.Password = string.Empty;
@@ -157,16 +157,16 @@ namespace TradePro
                     try
                     {
                         var err = await resp.Content.ReadFromJsonAsync<ServerError>(_jsonOptions);
-                        ShowStatus(err?.Message ?? "Error en el registro.");
+                        ShowStatus(err?.Message ?? "Errorea erregistroan.");
                     }
                     catch
                     {
-                        ShowStatus("Error en el registro.");
+                        ShowStatus("Errorea erregistroan.");
                     }
                     return;
                 }
 
-                ShowStatus("Registro exitoso. Ahora puede iniciar sesión.");
+                ShowStatus("Erregistroa ondo burutu da. Orain saioa hasi dezakezu.");
 
                 // Switch to login tab for convenience
                 LoginTabButton_Click(null, null);
@@ -175,11 +175,11 @@ namespace TradePro
             }
             catch (HttpRequestException)
             {
-                ShowStatus("No se pudo conectar al servidor. Asegúrate de que Zerbitzaria esté en ejecución.");
+                ShowStatus("Ezin izan da zerbitzariarekin konektatu. Ziurtatu `Zerbitzaria` martxan dagoela.");
             }
             catch (Exception ex)
             {
-                ShowStatus("Error: " + ex.Message);
+                ShowStatus("Errorea: " + ex.Message);
             }
         }
 

@@ -72,7 +72,7 @@ namespace TradePro.Views
                     posList.Items.Clear();
                     foreach (var p in db.Positions.Where(p => p.UserId == user.Id))
                     {
-                        posList.Items.Add(new TextBlock { Text = $"{p.Symbol} {p.Side} {p.Leverage}x - Margin: {p.Margin:C}", Foreground = Brushes.LightGray });
+                        posList.Items.Add(new TextBlock { Text = $"{p.Symbol} {LocalizeSide(p.Side)} {p.Leverage}x - Marjina: {p.Margin:C}", Foreground = Brushes.LightGray });
                     }
                 }
 
@@ -81,7 +81,7 @@ namespace TradePro.Views
                     tradesList.Items.Clear();
                     foreach (var t in db.Trades.Where(t => t.UserId == user.Id).OrderByDescending(t => t.Timestamp).Take(20))
                     {
-                        tradesList.Items.Add(new TextBlock { Text = $"{t.Symbol} {t.Side} { (t.IsOpen? "OPEN":"CLOSED")} PnL: {t.Pnl:C}", Foreground = Brushes.LightGray });
+                        tradesList.Items.Add(new TextBlock { Text = $"{t.Symbol} {LocalizeSide(t.Side)} { (t.IsOpen ? "IREKITA" : "ITXITA")} PnL: {t.Pnl:C}", Foreground = Brushes.LightGray });
                     }
                 }
             }
@@ -142,15 +142,15 @@ namespace TradePro.Views
                         if (!resp.IsSuccessStatusCode)
                         {
                             var body = await resp.Content.ReadAsStringAsync();
-                            MessageBox.Show("Error actualizando perfil: " + body, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Errorea profila eguneratzean: " + body, "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
 
-                        MessageBox.Show("Perfil actualizado.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Profila eguneratuta.", "Ados", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch
                     {
-                        MessageBox.Show("No se pudo actualizar en el servidor.", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("Ezin izan da zerbitzarian eguneratu.", "Oharra", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
 
@@ -185,7 +185,7 @@ namespace TradePro.Views
         {
             try
             {
-                var res = MessageBox.Show("Confirmar eliminacion de cuenta? Esto no se puede deshacer.", "Eliminar cuenta", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                var res = MessageBox.Show("Kontua ezabatzea baieztatu? Hau ezin da desegin.", "Kontua ezabatu", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) return;
 
                 // try server delete if user id present
@@ -197,7 +197,7 @@ namespace TradePro.Views
                         if (!resp.IsSuccessStatusCode)
                         {
                             var body = await resp.Content.ReadAsStringAsync();
-                            MessageBox.Show("Error eliminando cuenta en servidor: " + body, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Errorea kontua zerbitzarian ezabatzean: " + body, "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                     }
@@ -228,7 +228,7 @@ namespace TradePro.Views
                     // ignore
                 }
 
-                MessageBox.Show("Cuenta eliminada.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Kontua ezabatuta.", "Ados", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // raise logout so parent can navigate
                 try { LoggedOut?.Invoke(); } catch { }
@@ -239,6 +239,13 @@ namespace TradePro.Views
         private void BtnLogout_Click(object? sender, RoutedEventArgs e)
         {
             try { LoggedOut?.Invoke(); } catch { }
+        }
+
+        private static string LocalizeSide(string? side)
+        {
+            if (string.Equals(side, "LONG", StringComparison.OrdinalIgnoreCase)) return "LUZE";
+            if (string.Equals(side, "SHORT", StringComparison.OrdinalIgnoreCase)) return "LABUR";
+            return side ?? string.Empty;
         }
     }
 }

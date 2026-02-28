@@ -81,7 +81,7 @@ namespace TradePro.Views
                         }
 
                         if (BalanceText != null)
-                            BalanceText.Text = $"(Balance: {user.Balance:C})";
+                            BalanceText.Text = $"(Saldoa: {user.Balance:C})";
                     }
                 }
             }
@@ -130,7 +130,7 @@ namespace TradePro.Views
 
                                 if (BalanceText != null)
                                 {
-                                    BalanceText.Dispatcher.Invoke(() => BalanceText.Text = $"(Balance: {_userBalance:C})");
+                                    BalanceText.Dispatcher.Invoke(() => BalanceText.Text = $"(Saldoa: {_userBalance:C})");
                                 }
                             }
                         }
@@ -181,7 +181,7 @@ namespace TradePro.Views
             catch (Exception ex)
             {
                 // ensure errors don't bubble up to UI caller
-                try { OrderStatusText.Text = "Error cargando simbolo: " + ex.Message; } catch { }
+                try { OrderStatusText.Text = "Errorea sinboloa kargatzean: " + ex.Message; } catch { }
             }
         }
 
@@ -448,7 +448,7 @@ namespace TradePro.Views
 
         private async void OpenButton_Click(object sender, RoutedEventArgs e)
         {
-            OrderStatusText.Text = "Abriendo...";
+            OrderStatusText.Text = "Irekitzen...";
             OpenButton.IsEnabled = false;
 
             try
@@ -456,8 +456,8 @@ namespace TradePro.Views
                 var side = _selectedSide ?? "LONG";
                 var amount = (decimal)(AmountSlider?.Value ?? 0);
                 var lev = (int)(LeverageSlider?.Value ?? 1);
-                if (amount <= 0) throw new Exception("Cantidad invalida");
-                if (lev < 1 || lev > 100) throw new Exception("Apalancamiento invalido");
+                if (amount <= 0) throw new Exception("Kopuru baliogabea");
+                if (lev < 1 || lev > 100) throw new Exception("Apalankamendu baliogabea");
 
                 // Simple local simulation: create a trade in local DB if available
                 try
@@ -480,19 +480,19 @@ namespace TradePro.Views
                                     var resp = await _http.PostAsync($"/api/users/{_currentUserId.Value}/trades", content);
                                     if (resp.IsSuccessStatusCode)
                                     {
-                                        OrderStatusText.Text = "Posicion abierta.";
+                                        OrderStatusText.Text = "Posizioa irekita.";
                                         try { PositionOpened?.Invoke(); } catch { }
                                     }
                                     else
                                     {
                                         var body = string.Empty;
                                         try { body = await resp.Content.ReadAsStringAsync(); } catch { }
-                                        OrderStatusText.Text = "Error abriendo posicion (server): " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body);
+                                        OrderStatusText.Text = "Errorea posizioa irekitzean (zerbitzaria): " + (string.IsNullOrEmpty(body) ? resp.ReasonPhrase : body);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    OrderStatusText.Text = "Error server: " + ex.Message;
+                                    OrderStatusText.Text = "Zerbitzari-errorea: " + ex.Message;
                                 }
                             }
                             else
@@ -512,23 +512,23 @@ namespace TradePro.Views
                                     UserId = user.Id
                                 });
                                 await db.SaveChangesAsync();
-                                OrderStatusText.Text = "Posicion abierta (local).";
+                                OrderStatusText.Text = "Posizioa irekita (lokala).";
                                 try { PositionOpened?.Invoke(); } catch { }
                             }
                         }
                         else
                         {
-                            OrderStatusText.Text = "No hay usuario local para crear orden.";
+                            OrderStatusText.Text = "Ez dago erabiltzaile lokalik eskaera sortzeko.";
                         }
                     }
                     else
                     {
-                        OrderStatusText.Text = "Base de datos local no disponible.";
+                        OrderStatusText.Text = "Datu-base lokala ez dago eskuragarri.";
                     }
                 }
                 catch (Exception ex)
                 {
-                    OrderStatusText.Text = "Error local: " + ex.Message;
+                    OrderStatusText.Text = "Errore lokala: " + ex.Message;
                 }
             }
             catch (Exception ex)

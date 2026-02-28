@@ -89,8 +89,8 @@ Console.WriteLine("Zerbitzaria running on http://localhost:5000");
 app.MapPost("/api/login", async (ApplicationDbContext db, UserDto dto) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
-    if (user == null) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos"));
-    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos"));
+    if (user == null) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Erabiltzailea edo pasahitza okerra"));
+    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Erabiltzailea edo pasahitza okerra"));
     var resp = new LoginResponseDto(user.Username, user.Balance, user.Id);
     return Results.Ok(resp);
 });
@@ -98,13 +98,13 @@ app.MapPost("/api/login", async (ApplicationDbContext db, UserDto dto) =>
 // Register endpoint - return DTO
 app.MapPost("/api/register", async (ApplicationDbContext db, UserDto dto) =>
 {
-    if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password)) return Results.BadRequest(new ErrorResponseDto("invalid_request", "Campos inválidos"));
-    if (await db.Users.AnyAsync(u => u.Username == dto.Username)) return Results.BadRequest(new ErrorResponseDto("user_exists", "Usuario ya existe"));
+    if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password)) return Results.BadRequest(new ErrorResponseDto("invalid_request", "Eremu baliogabeak"));
+    if (await db.Users.AnyAsync(u => u.Username == dto.Username)) return Results.BadRequest(new ErrorResponseDto("user_exists", "Erabiltzailea badago"));
     var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
     var user = new User { Username = dto.Username, PasswordHash = hash, Balance = 100000m };
     db.Users.Add(user);
     await db.SaveChangesAsync();
-    return Results.Ok(new GenericMessageDto("Registrado"));
+    return Results.Ok(new GenericMessageDto("Erregistratuta"));
 });
 
 // Get markets - resilient: try DB, on DB error fallback to CoinGecko live prices
@@ -253,7 +253,7 @@ app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int use
 app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int userId, Zerbitzaria.Dtos.OpenTradeDto dto, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Erabiltzailea ez da aurkitu"));
 
     // Determine entry price: prefer provided, then DB market, then CoinGecko
     decimal entry = 0m;
@@ -296,14 +296,14 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
         }
     }
 
-    if (entry <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "No se pudo determinar el precio de entrada"));
+    if (entry <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "Ezin izan da sarrera-prezioa zehaztu"));
 
     // Compute exposure and quantity
     var exposure = dto.Margin * dto.Leverage;
     var quantity = exposure / entry;
 
     // Check user balance for margin
-    if (user.Balance < dto.Margin) return Results.BadRequest(new ErrorResponseDto("insufficient_funds", "Saldo insuficiente"));
+    if (user.Balance < dto.Margin) return Results.BadRequest(new ErrorResponseDto("insufficient_funds", "Saldo nahikorik ez"));
 
     user.Balance -= dto.Margin; // reserve margin
 
@@ -367,8 +367,8 @@ app.MapPost("/api/users/{userId}/trades", async (ApplicationDbContext db, int us
 app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbContext db, int userId, int tradeId, IHttpClientFactory httpFactory, IHubContext<UpdatesHub> hubContext) =>
 {
     var trade = await db.Trades.SingleOrDefaultAsync(t => t.Id == tradeId && t.UserId == userId);
-    if (trade == null) return Results.NotFound(new ErrorResponseDto("not_found", "Trade no encontrado"));
-    if (!trade.IsOpen) return Results.BadRequest(new ErrorResponseDto("already_closed", "Trade ya cerrado"));
+    if (trade == null) return Results.NotFound(new ErrorResponseDto("not_found", "Trade-a ez da aurkitu"));
+    if (!trade.IsOpen) return Results.BadRequest(new ErrorResponseDto("already_closed", "Trade-a jada itxita dago"));
 
     // determine current price
     decimal current = 0m;
@@ -395,7 +395,7 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
         catch { }
     }
 
-    if (current <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "No se pudo determinar precio actual"));
+    if (current <= 0) return Results.BadRequest(new ErrorResponseDto("price_error", "Ezin izan da uneko prezioa zehaztu"));
 
     // calculate pnl
     decimal pnl = 0m;
@@ -450,7 +450,7 @@ app.MapPost("/api/users/{userId}/trades/{tradeId}/close", async (ApplicationDbCo
 app.MapGet("/api/users/{userId}", async (ApplicationDbContext db, int userId) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Erabiltzailea ez da aurkitu"));
     var dto = new UserProfileDto(user.Username, user.Balance, user.Id);
     return Results.Ok(dto);
 });
@@ -459,7 +459,7 @@ app.MapGet("/api/users/{userId}", async (ApplicationDbContext db, int userId) =>
 app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int userId, System.Text.Json.JsonElement payload) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Erabiltzailea ez da aurkitu"));
 
     try
     {
@@ -482,7 +482,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
         {
             if (await db.Users.AnyAsync(x => x.Username == newUsername && x.Id != userId))
             {
-                return Results.BadRequest(new ErrorResponseDto("username_taken", "Nombre de usuario ya en uso"));
+                return Results.BadRequest(new ErrorResponseDto("username_taken", "Erabiltzaile-izena erabilita dago"));
             }
             user.Username = newUsername!;
         }
@@ -493,7 +493,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
         }
 
         await db.SaveChangesAsync();
-        return Results.Ok(new GenericMessageDto("Perfil actualizado"));
+        return Results.Ok(new GenericMessageDto("Profila eguneratuta"));
     }
     catch (Exception ex)
     {
@@ -506,7 +506,7 @@ app.MapPost("/api/users/{userId}/update", async (ApplicationDbContext db, int us
 app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId, IHubContext<UpdatesHub>? hubContext) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Erabiltzailea ez da aurkitu"));
 
     try
     {
@@ -526,7 +526,7 @@ app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId,
         }
         catch { }
 
-        return Results.Ok(new GenericMessageDto("Usuario eliminado"));
+        return Results.Ok(new GenericMessageDto("Erabiltzailea ezabatuta"));
     }
     catch (Exception ex)
     {
@@ -539,7 +539,7 @@ app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId,
 app.MapGet("/api/users/{userId}/dashboard", async (ApplicationDbContext db, int userId) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId);
-    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Usuario no encontrado"));
+    if (user == null) return Results.NotFound(new ErrorResponseDto("not_found", "Erabiltzailea ez da aurkitu"));
 
     var markets = await db.Markets.OrderBy(m => m.Symbol).ToListAsync();
     var positions = await db.Positions.Where(p => p.UserId == userId).ToListAsync();

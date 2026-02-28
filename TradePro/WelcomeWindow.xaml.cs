@@ -156,7 +156,7 @@ namespace TradePro
             catch (Exception ex)
             {
                 // Show a friendly message instead of crashing
-                MessageBox.Show("No se pudieron cargar los detalles del mercado: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Ezin izan dira merkatuaren xehetasunak kargatu: " + ex.Message, "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
                 // fallback to dashboard
                 ShowDashboard(_currentUsername);
             }
@@ -179,7 +179,7 @@ namespace TradePro
 
             if (welcomeText != null)
             {
-                welcomeText.Text = !string.IsNullOrEmpty(effectiveUsername) ? $"Bienvenido, {effectiveUsername}" : "Bienvenido";
+                welcomeText.Text = !string.IsNullOrEmpty(effectiveUsername) ? $"Ongi etorri, {effectiveUsername}" : "Ongi etorri";
             }
 
             // Default/sample data
@@ -222,7 +222,7 @@ namespace TradePro
             if (positionsStack != null && openCountText != null && positionsEmpty != null)
             {
                 positionsStack.Children.Clear();
-                openCountText.Text = $"Posiciones: {positions.Count}";
+                openCountText.Text = $"Posizioak: {positions.Count}";
                 positionsEmpty.Visibility = Visibility.Visible;
             }
 
@@ -252,7 +252,7 @@ namespace TradePro
 
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
             right.Children.Add(new TextBlock { Text = (estimated >= 0 ? "+" : "") + estimated.ToString("C"), Foreground = estimated >= 0 ? System.Windows.Media.Brushes.LightGreen : System.Windows.Media.Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right });
-            right.Children.Add(new TextBlock { Text = $"Margin: {p.Margin.ToString("C")}", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+            right.Children.Add(new TextBlock { Text = $"Marjina: {p.Margin.ToString("C")}", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
 
             grid.Children.Add(left);
             grid.Children.Add(right);
@@ -260,6 +260,13 @@ namespace TradePro
 
             border.Child = grid;
             return border;
+        }
+
+        private static string LocalizeSide(string? side)
+        {
+            if (string.Equals(side, "LONG", System.StringComparison.OrdinalIgnoreCase)) return "LUZE";
+            if (string.Equals(side, "SHORT", System.StringComparison.OrdinalIgnoreCase)) return "LABUR";
+            return side ?? string.Empty;
         }
 
         // Minimal stubs for other views - keep implementation simple to avoid compilation errors

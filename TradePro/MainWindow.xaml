@@ -5,36 +5,36 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TradePro"
         mc:Ignorable="d"
-        Title="TradePro - Login" Height="520" Width="380" Background="#0B0C0D" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        Title="TradePro - Saioa hasi" Height="520" Width="380" Background="#0B0C0D" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Grid Margin="16">
         <Border Background="#0E0F10" CornerRadius="12" Padding="18" BorderBrush="#242424" BorderThickness="1">
             <StackPanel>
                 <TextBlock Text="TradePro" FontSize="26" FontWeight="Bold" Foreground="#FF7A00" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                <TextBlock Text="Inicia sesión o regístrate para continuar" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,18" />
+                <TextBlock Text="Hasi saioa edo erregistratu jarraitzeko" Foreground="#BDBDBD" FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,18" />
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
-                    <Button x:Name="LoginTabButton" Content="Login" Click="LoginTabButton_Click" Padding="8,4" Margin="0,0,8,0" Background="#FF7A00" Foreground="Black" BorderBrush="Transparent" />
-                    <Button x:Name="RegisterTabButton" Content="Registro" Click="RegisterTabButton_Click" Padding="8,4" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" />
+                    <Button x:Name="LoginTabButton" Content="Saioa" Click="LoginTabButton_Click" Padding="8,4" Margin="0,0,8,0" Background="#FF7A00" Foreground="Black" BorderBrush="Transparent" />
+                    <Button x:Name="RegisterTabButton" Content="Erregistroa" Click="RegisterTabButton_Click" Padding="8,4" Background="Transparent" Foreground="#BDBDBD" BorderBrush="Transparent" />
                 </StackPanel>
 
                 <!-- Login Panel -->
                 <StackPanel x:Name="LoginPanel">
-                    <TextBlock Text="Usuario" Foreground="#D0D0D0" />
+                    <TextBlock Text="Erabiltzailea" Foreground="#D0D0D0" />
                     <TextBox x:Name="LoginUsername" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
-                    <TextBlock Text="Contraseña" Foreground="#D0D0D0" />
+                    <TextBlock Text="Pasahitza" Foreground="#D0D0D0" />
                     <PasswordBox x:Name="LoginPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,18" />
-                    <Button Content="Entrar" Click="LoginButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
+                    <Button Content="Sartu" Click="LoginButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
                 </StackPanel>
 
                 <!-- Register Panel -->
                 <StackPanel x:Name="RegisterPanel" Visibility="Collapsed">
-                    <TextBlock Text="Usuario" Foreground="#D0D0D0" />
+                    <TextBlock Text="Erabiltzailea" Foreground="#D0D0D0" />
                     <TextBox x:Name="RegisterUsername" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
-                    <TextBlock Text="Contraseña" Foreground="#D0D0D0" />
+                    <TextBlock Text="Pasahitza" Foreground="#D0D0D0" />
                     <PasswordBox x:Name="RegisterPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,12" />
-                    <TextBlock Text="Confirmar contraseña" Foreground="#D0D0D0" />
+                    <TextBlock Text="Pasahitza berretsi" Foreground="#D0D0D0" />
                     <PasswordBox x:Name="RegisterConfirmPassword" Height="30" Background="#151617" Foreground="White" BorderBrush="#333" Margin="0,6,0,18" />
-                    <Button Content="Registrar" Click="RegisterButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
+                    <Button Content="Erregistratu" Click="RegisterButton_Click" Background="#FF7A00" Foreground="Black" Padding="10" BorderBrush="Transparent" />
                 </StackPanel>
 
                 <TextBlock x:Name="StatusText" Text="" Foreground="#FF7A00" Margin="0,18,0,0" HorizontalAlignment="Center" />

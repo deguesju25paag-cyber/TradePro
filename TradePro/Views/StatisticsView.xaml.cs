@@ -124,12 +124,12 @@ namespace TradePro.Views
                     if (panel != null)
                     {
                         panel.Children.Clear();
-                        panel.Children.Add(MakeStatCard("ROI", roi.ToString("0.##") + "%", "Return on Investment"));
-                        panel.Children.Add(MakeStatCard("Volumen (mes)", monthlyVolume.ToString("C", CultureInfo.CurrentCulture), "Volumen en el último mes"));
-                        panel.Children.Add(MakeStatCard("Win Rate", winRate.ToString("0.##") + "%", "Porcentaje de trades ganadores"));
-                        panel.Children.Add(MakeStatCard("Longs abiertos", longsOpen.ToString(), "Posiciones LONG abiertas"));
-                        panel.Children.Add(MakeStatCard("Shorts abiertos", shortsOpen.ToString(), "Posiciones SHORT abiertas"));
-                        panel.Children.Add(MakeStatCard("PnL diario", dailyPnl.ToString("C", CultureInfo.CurrentCulture), "PnL realizado hoy"));
+                        panel.Children.Add(MakeStatCard("ROI", roi.ToString("0.##") + "%", "Inbertsioaren etekina"));
+                        panel.Children.Add(MakeStatCard("Bolumena (hilabetea)", monthlyVolume.ToString("C", CultureInfo.CurrentCulture), "Azken hileko bolumena"));
+                        panel.Children.Add(MakeStatCard("Irabazi-tasa", winRate.ToString("0.##") + "%", "Irabazitako tradeen ehunekoa"));
+                        panel.Children.Add(MakeStatCard("LUZE irekiak", longsOpen.ToString(), "LUZE posizio irekiak"));
+                        panel.Children.Add(MakeStatCard("LABUR irekiak", shortsOpen.ToString(), "LABUR posizio irekiak"));
+                        panel.Children.Add(MakeStatCard("Eguneko PnL", dailyPnl.ToString("C", CultureInfo.CurrentCulture), "Gaur egindako PnL"));
                     }
 
                     // recent trades list
@@ -162,7 +162,7 @@ namespace TradePro.Views
 
             var left = new StackPanel { Orientation = Orientation.Vertical };
             left.Children.Add(new TextBlock { Text = t.Symbol, Foreground = Brushes.White, FontWeight = FontWeights.SemiBold });
-            left.Children.Add(new TextBlock { Text = $"{t.Side} • {t.Leverage}x", Foreground = Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"{LocalizeSide(t.Side)} • {t.Leverage}x", Foreground = Brushes.LightGray, FontSize = 12 });
 
             var right = new StackPanel { HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
             right.Children.Add(new TextBlock { Text = (t.Pnl >= 0 ? "+" : "") + t.Pnl.ToString("C", CultureInfo.CurrentCulture), Foreground = t.Pnl >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = System.Windows.HorizontalAlignment.Right });
@@ -186,6 +186,13 @@ namespace TradePro.Views
             sp.Children.Add(new TextBlock { Text = subtitle, Foreground = Brushes.LightGray, FontSize = 11, Margin = new Thickness(0, 6, 0, 0) });
             b.Child = sp;
             return b;
+        }
+
+        private static string LocalizeSide(string? side)
+        {
+            if (string.Equals(side, "LONG", StringComparison.OrdinalIgnoreCase)) return "LUZE";
+            if (string.Equals(side, "SHORT", StringComparison.OrdinalIgnoreCase)) return "LABUR";
+            return side ?? string.Empty;
         }
 
         private async Task<decimal?> GetUserBalanceFromServerOrLocalAsync()
@@ -248,7 +255,7 @@ namespace TradePro.Views
 
                 var daily = dailyText?.Text ?? "-";
 
-                var dlg = new SaveFileDialog { Filter = "PDF files (*.pdf)|*.pdf", FileName = "tradepro-stats.pdf" };
+                var dlg = new SaveFileDialog { Filter = "PDF fitxategiak (*.pdf)|*.pdf", FileName = "tradepro-stats.pdf" };
                 if (dlg.ShowDialog() != true) return;
                 var path = dlg.FileName;
 
@@ -269,7 +276,7 @@ namespace TradePro.Views
 
                 // Header
                 gfx.DrawString("TradePro", titleFont, XBrushes.Black, new XRect(margin, y, page.Width.Point - 2 * margin, 28), XStringFormats.TopLeft);
-                gfx.DrawString("Estadisticas de usuario", subTitleFont, XBrushes.Gray, new XRect(margin, y + 26, page.Width.Point - 2 * margin, 18), XStringFormats.TopLeft);
+                gfx.DrawString("Erabiltzailearen estatistikak", subTitleFont, XBrushes.Gray, new XRect(margin, y + 26, page.Width.Point - 2 * margin, 18), XStringFormats.TopLeft);
 
                 // Export date at right
                 gfx.DrawString(DateTime.Now.ToString("g"), subTitleFont, XBrushes.Gray, new XRect(margin, y, page.Width.Point - 2 * margin, 18), XStringFormats.TopRight);
@@ -286,7 +293,7 @@ namespace TradePro.Views
                 var pnlBgBrush = new XSolidBrush(XColor.FromArgb(255, 15, 19, 19)); // dark
                 var transparentPen = new XPen(XColors.Transparent, 0);
                 gfx.DrawRoundedRectangle(transparentPen, pnlBgBrush, pnlBoxRect, new XSize(6, 6));
-                gfx.DrawString("PnL diario", cardTitleFont, XBrushes.LightGray, new XRect(pnlBoxRect.X + 12, pnlBoxRect.Y + 8, pnlBoxRect.Width - 24, 14), XStringFormats.TopLeft);
+                gfx.DrawString("Eguneko PnL", cardTitleFont, XBrushes.LightGray, new XRect(pnlBoxRect.X + 12, pnlBoxRect.Y + 8, pnlBoxRect.Width - 24, 14), XStringFormats.TopLeft);
                 gfx.DrawString(daily, cardValueFont, XBrushes.White, new XRect(pnlBoxRect.X + 12, pnlBoxRect.Y + 18, pnlBoxRect.Width - 24, 24), XStringFormats.TopLeft);
 
                 y += pnlBoxHeight + 18;
@@ -336,18 +343,18 @@ namespace TradePro.Views
                 }
 
                 // Footer
-                var footerText = "Generado por TradePro";
+                var footerText = "TradePro-k sortua";
                 gfx.DrawString(footerText, subTitleFont, XBrushes.Gray, new XRect(margin, page.Height.Point - margin + 4, page.Width.Point - 2 * margin, 16), XStringFormats.Center);
 
                 // Save
                 using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
                 doc.Save(fs);
 
-                MessageBox.Show("PDF generado: " + path, "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("PDF sortua: " + path, "Ados", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error exportando PDF: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Errorea PDFa esportatzean: " + ex.Message, "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

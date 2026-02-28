@@ -80,7 +80,7 @@ namespace TradePro.Views
 
             if (trades == null || trades.Count == 0)
             {
-                listBox.Items.Add(new TextBlock { Text = "No hay operaciones en el historial.", Foreground = Brushes.LightGray });
+                listBox.Items.Add(new TextBlock { Text = "Ez dago eragiketarik historian.", Foreground = Brushes.LightGray });
                 return;
             }
 
@@ -107,13 +107,13 @@ namespace TradePro.Views
             left.Children.Add(new TextBlock { Text = $"Entry: {t.EntryPrice.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12 });
 
             var middle = new StackPanel { Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Right };
-            middle.Children.Add(new TextBlock { Text = $"Qty: {t.Quantity.ToString("F2")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
-            middle.Children.Add(new TextBlock { Text = $"Margin: {t.Margin.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+            middle.Children.Add(new TextBlock { Text = $"Kopurua: {t.Quantity.ToString("F2")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+            middle.Children.Add(new TextBlock { Text = $"Marjina: {t.Margin.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
 
             var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
             right.Children.Add(new TextBlock { Text = (t.Pnl >= 0 ? "+" : "") + t.Pnl.ToString("C"), Foreground = t.Pnl >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right });
             right.Children.Add(new TextBlock { Text = t.Timestamp.ToLocalTime().ToString("g"), Foreground = Brushes.LightGray, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right });
-            right.Children.Add(new TextBlock { Text = t.IsOpen ? "Open" : "Closed", Foreground = t.IsOpen ? Brushes.LightGreen : Brushes.IndianRed, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
+            right.Children.Add(new TextBlock { Text = t.IsOpen ? "Irekita" : "Itxita", Foreground = t.IsOpen ? Brushes.LightGreen : Brushes.IndianRed, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });
 
             Grid.SetColumn(left, 0);
             Grid.SetColumn(middle, 1);
@@ -129,6 +129,13 @@ namespace TradePro.Views
 
             border.Child = grid;
             return border;
+        }
+
+        private static string LocalizeSide(string? side)
+        {
+            if (string.Equals(side, "LONG", StringComparison.OrdinalIgnoreCase)) return "LUZE";
+            if (string.Equals(side, "SHORT", StringComparison.OrdinalIgnoreCase)) return "LABUR";
+            return side ?? string.Empty;
         }
     }
 }

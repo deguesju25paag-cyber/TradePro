@@ -218,7 +218,7 @@ namespace TradePro.Views
             if (markets == null || markets.Count == 0)
             {
                 assetsList.Items.Clear();
-                var tb = new TextBlock { Text = "No se han podido obtener activos.", Foreground = Brushes.LightGray };
+                var tb = new TextBlock { Text = "Ezin izan dira aktiboak lortu.", Foreground = Brushes.LightGray };
                 assetsList.Items.Add(tb);
                 return;
             }
@@ -297,7 +297,7 @@ namespace TradePro.Views
 
                 var leftStack = new StackPanel { Orientation = Orientation.Vertical };
                 leftStack.Children.Add(new TextBlock { Text = m.Symbol + "/USD", Foreground = Brushes.White, FontWeight = FontWeights.SemiBold, FontSize = 14 });
-                leftStack.Children.Add(new TextBlock { Text = "Cripto", Foreground = Brushes.LightGray, FontSize = 11 });
+                leftStack.Children.Add(new TextBlock { Text = "Kripto", Foreground = Brushes.LightGray, FontSize = 11 });
 
                 var priceTb = new TextBlock { Text = m.Price == 0m ? "-" : m.Price.ToString("C"), Foreground = Brushes.LightGray, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
                 var changeTb = new TextBlock { Text = (m.Change >= 0 ? "+" : "") + m.Change.ToString("0.##") + "%", Foreground = m.Change >= 0 ? Brushes.LightGreen : Brushes.IndianRed, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };

@@ -120,7 +120,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock x:Name="SymbolText" Text="SYMBOL" Foreground="White" FontSize="26" FontWeight="Bold" />
+                            <TextBlock x:Name="SymbolText" Text="SINBOLOA" Foreground="White" FontSize="26" FontWeight="Bold" />
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="PriceText" Text="$0.00" Foreground="{StaticResource MutedText}" FontSize="13" />
                                 <TextBlock x:Name="PriceChangeIcon" Text="▲" Foreground="#4CAF50" FontSize="13" Margin="8,0,0,0" Visibility="Collapsed" />
@@ -131,16 +131,16 @@
                 </Border>
 
                 <!-- Side selector -->
-                <TextBlock Text="Side" Foreground="{StaticResource MutedText}" Margin="2,26,0,6" />
+                <TextBlock Text="Norabidea" Foreground="{StaticResource MutedText}" Margin="2,26,0,6" />
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <Button x:Name="LongButton" Content="LONG" Click="LongButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource LongGreen}" Width="96" Height="40" Margin="0,0,8,0" ToolTip="Abrir posicion larga" />
-                    <Button x:Name="ShortButton" Content="SHORT" Click="ShortButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource ShortRed}" Width="96" Height="40" ToolTip="Abrir posicion corta" />
+                    <Button x:Name="LongButton" Content="LUZE" Click="LongButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource LongGreen}" Width="96" Height="40" Margin="0,0,8,0" ToolTip="Posizio luzea ireki" />
+                    <Button x:Name="ShortButton" Content="LABUR" Click="ShortButton_Click" Style="{StaticResource ModernButton}" Background="{StaticResource ShortRed}" Width="96" Height="40" ToolTip="Posizio laburra ireki" />
                 </StackPanel>
 
                 <!-- Leverage -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,10,0,22">
                     <StackPanel Width="260">
-                        <TextBlock Text="Leverage" Foreground="{StaticResource MutedText}" />
+                        <TextBlock Text="Apalankamendua" Foreground="{StaticResource MutedText}" />
                         <Slider x:Name="LeverageSlider" Style="{StaticResource ModernSlider}" Minimum="1" Maximum="100" Value="1" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="LeverageSlider_ValueChanged" Margin="0,8,0,0" />
                     </StackPanel>
                     <Border Background="#141618" CornerRadius="8" Padding="8" Margin="12,0,0,0" Width="72" Height="48" VerticalAlignment="Center">
@@ -149,7 +149,7 @@
                 </StackPanel>
 
                 <!-- Amount -->
-                <TextBlock Text="Cantidad ($)" Foreground="{StaticResource MutedText}" />
+                <TextBlock Text="Kopurua ($)" Foreground="{StaticResource MutedText}" />
                 <StackPanel Margin="0,6,0,18">
                     <Slider x:Name="AmountSlider" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="1000" Value="100" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="AmountSlider_ValueChanged" />
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,10">
@@ -160,14 +160,14 @@
 					</StackPanel>
 					<StackPanel Orientation="Horizontal" Margin="0,15,0,0" VerticalAlignment="Center">
                         <TextBlock x:Name="AmountText" Text="$100.00" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock x:Name="BalanceText" Text="(Balance: $0.00)" Foreground="{StaticResource MutedText}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="BalanceText" Text="(Saldoa: $0.00)" Foreground="{StaticResource MutedText}" Margin="12,0,0,0" VerticalAlignment="Center" />
                         
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Open button and status -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,25,0,0">
-                    <Button x:Name="OpenButton" Content="Abrir posicion" Width="200" Height="54" Click="OpenButton_Click" Style="{StaticResource ModernButton}" Background="#1A2121" />
+                    <Button x:Name="OpenButton" Content="Posizioa ireki" Width="200" Height="54" Click="OpenButton_Click" Style="{StaticResource ModernButton}" Background="#1A2121" />
                     <TextBlock x:Name="OrderStatusText" Text="" Foreground="#FFB86B" Margin="12,12,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 

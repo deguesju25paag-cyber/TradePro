@@ -40,7 +40,7 @@ namespace TradePro.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Realtime start failed: " + ex.Message);
+                Console.WriteLine("Denbora errealeko konexioa abiarazteak huts egin du: " + ex.Message);
             }
         }
 

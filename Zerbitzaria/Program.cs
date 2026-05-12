@@ -80,10 +80,10 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine("DB ensure failed: " + ex.Message);
+    Console.WriteLine("DB bermatzeak huts egin du: " + ex.Message);
 }
 
-Console.WriteLine("Zerbitzaria running on http://localhost:5000");
+Console.WriteLine("Zerbitzaria martxan dago hemen: http://localhost:5000");
 
 // Login endpoint - return DTO
 app.MapPost("/api/login", async (ApplicationDbContext db, UserDto dto) =>
@@ -122,7 +122,7 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
     }
     catch (Microsoft.Data.Sqlite.SqliteException sqliteEx)
     {
-        Console.WriteLine("DB read error for /api/markets: " + sqliteEx.Message);
+        Console.WriteLine("DB irakurketa-errorea /api/markets-en: " + sqliteEx.Message);
     }
 
     // If DB unavailable or empty, use CoinGecko. Cache results briefly to avoid rate limits.
@@ -212,7 +212,7 @@ app.MapGet("/api/markets", async (ApplicationDbContext db, IHttpClientFactory ht
     }
     catch (Exception ex)
     {
-        Console.WriteLine("CoinGecko fallback failed: " + ex.Message);
+        Console.WriteLine("CoinGecko-ko ordezko eskaerak huts egin du: " + ex.Message);
         return Results.StatusCode(500);
     }
 });
@@ -228,7 +228,7 @@ app.MapGet("/api/users/{userId}/positions", async (ApplicationDbContext db, int 
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error in /api/users/{userId}/positions: {ex}");
+        Console.WriteLine($"Errorea /api/users/{userId}/positions-en: {ex}");
         return Results.Json(new ErrorResponseDto("error", ex.Message), statusCode: 500);
     }
 });
@@ -244,7 +244,7 @@ app.MapGet("/api/users/{userId}/trades", async (ApplicationDbContext db, int use
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error in /api/users/{userId}/trades: {ex}");
+        Console.WriteLine($"Errorea /api/users/{userId}/trades-en: {ex}");
         return Results.Json(new ErrorResponseDto("error", ex.Message), statusCode: 500);
     }
 });
@@ -530,7 +530,7 @@ app.MapDelete("/api/users/{userId}", async (ApplicationDbContext db, int userId,
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Error deleting user: " + ex.Message);
+        Console.WriteLine("Errorea erabiltzailea ezabatzean: " + ex.Message);
         return Results.StatusCode(500);
     }
 });

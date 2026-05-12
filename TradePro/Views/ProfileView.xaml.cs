@@ -127,7 +127,7 @@ namespace TradePro.Views
                 {
                     if (newPassword != conf)
                     {
-                        MessageBox.Show("Las contraseñas no coinciden.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("Pasahitzak ez datoz bat.", "Errorea", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
                 }

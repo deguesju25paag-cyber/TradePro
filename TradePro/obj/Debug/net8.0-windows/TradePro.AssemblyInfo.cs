@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TradePro")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+860d6969dad7fe65bccaa00a41a30f5db306d913")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e50285fb879900b1fc389ef4e205e3abee566bba")]
 [assembly: System.Reflection.AssemblyProductAttribute("TradePro")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TradePro")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

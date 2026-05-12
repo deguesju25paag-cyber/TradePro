@@ -244,7 +244,7 @@ namespace TradePro
 
             var left = new StackPanel { Orientation = Orientation.Vertical };
             left.Children.Add(new TextBlock { Text = p.Symbol, Foreground = System.Windows.Media.Brushes.White, FontWeight = FontWeights.SemiBold });
-            left.Children.Add(new TextBlock { Text = $"{p.Side} • {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"{LocalizeSide(p.Side)} • {p.Leverage}x", Foreground = System.Windows.Media.Brushes.LightGray, FontSize = 12 });
 
             decimal estimated = 0m;
             var market = markets.FirstOrDefault(m => string.Equals(m.Symbol, p.Symbol, System.StringComparison.OrdinalIgnoreCase) || (p.Symbol != null && p.Symbol.StartsWith(m.Symbol, System.StringComparison.OrdinalIgnoreCase)));

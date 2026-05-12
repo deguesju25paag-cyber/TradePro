@@ -84,7 +84,7 @@ namespace TradePro.Services
         {
             if (_disposed) throw new ObjectDisposedException(nameof(TcpClientService));
             if (_client == null || !_client.Connected || _stream == null) await ConnectAsync(ct);
-            if (_stream == null) throw new InvalidOperationException("Network stream not available");
+            if (_stream == null) throw new InvalidOperationException("Sareko streama ez dago eskuragarri");
 
             var reqBytes = JsonSerializer.SerializeToUtf8Bytes(request);
             var len = new byte[4];
@@ -95,10 +95,10 @@ namespace TradePro.Services
 
             // read 4-byte response length
             var lenBuf = new byte[4];
-            if (!await ReadExactAsync(_stream, lenBuf, 0, 4, ct).ConfigureAwait(false)) throw new IOException("Remote closed");
+            if (!await ReadExactAsync(_stream, lenBuf, 0, 4, ct).ConfigureAwait(false)) throw new IOException("Urruneko konexioa itxita");
             int respLen = BinaryPrimitives.ReadInt32BigEndian(lenBuf);
             var buf = new byte[respLen];
-            if (!await ReadExactAsync(_stream, buf, 0, respLen, ct).ConfigureAwait(false)) throw new IOException("Remote closed");
+            if (!await ReadExactAsync(_stream, buf, 0, respLen, ct).ConfigureAwait(false)) throw new IOException("Urruneko konexioa itxita");
 
             var el = JsonSerializer.Deserialize<T>(buf, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return el;

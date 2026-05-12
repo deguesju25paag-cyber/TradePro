@@ -41,13 +41,13 @@ namespace TradePro
                     }
                     catch (Exception ensureEx)
                     {
-                        throw new Exception("Error applying migrations and EnsureCreated failed. Migrate error: " + migrateEx.Message + " | EnsureCreated error: " + ensureEx.Message);
+                        throw new Exception("Errorea migrazioak aplikatzean eta EnsureCreated-ek huts egin du. Migrazio-errorea: " + migrateEx.Message + " | EnsureCreated errorea: " + ensureEx.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("No se pudo inicializar la base de datos: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Ezin izan da datu-basea hasieratu: " + ex.Message, "Errorea", MessageBoxButton.OK, MessageBoxImage.Error);
                 // allow application to continue; many views handle null DbContext
             }
         }

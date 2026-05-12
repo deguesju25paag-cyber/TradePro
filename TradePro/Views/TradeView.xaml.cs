@@ -321,7 +321,7 @@ namespace TradePro.Views
                 assetsList.Items.Add(card);
             }
 
-            if (pageIndicator != null) pageIndicator.Text = $"Página {_page}/{(totalPages == 0 ? 1 : totalPages)}";
+            if (pageIndicator != null) pageIndicator.Text = $"Orria {_page}/{(totalPages == 0 ? 1 : totalPages)}";
             if (prev != null) prev.IsEnabled = _page > 1;
             if (next != null) next.IsEnabled = _page < totalPages;
         }

@@ -103,8 +103,8 @@ namespace TradePro.Views
 
             var left = new StackPanel { Orientation = Orientation.Vertical };
             left.Children.Add(new TextBlock { Text = t.Symbol, Foreground = Brushes.White, FontWeight = FontWeights.SemiBold });
-            left.Children.Add(new TextBlock { Text = $"{t.Side} • {t.Leverage}x", Foreground = Brushes.LightGray, FontSize = 12 });
-            left.Children.Add(new TextBlock { Text = $"Entry: {t.EntryPrice.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"{LocalizeSide(t.Side)} • {t.Leverage}x", Foreground = Brushes.LightGray, FontSize = 12 });
+            left.Children.Add(new TextBlock { Text = $"Sarrera: {t.EntryPrice.ToString("C")}", Foreground = Brushes.LightGray, FontSize = 12 });
 
             var middle = new StackPanel { Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Right };
             middle.Children.Add(new TextBlock { Text = $"Kopurua: {t.Quantity.ToString("F2")}", Foreground = Brushes.LightGray, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right });

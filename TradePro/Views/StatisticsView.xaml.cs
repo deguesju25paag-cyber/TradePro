@@ -255,7 +255,7 @@ namespace TradePro.Views
 
                 var daily = dailyText?.Text ?? "-";
 
-                var dlg = new SaveFileDialog { Filter = "PDF fitxategiak (*.pdf)|*.pdf", FileName = "tradepro-stats.pdf" };
+                var dlg = new SaveFileDialog { Filter = "PDF fitxategiak (*.pdf)|*.pdf", FileName = "tradepro-estatistikak.pdf" };
                 if (dlg.ShowDialog() != true) return;
                 var path = dlg.FileName;
 

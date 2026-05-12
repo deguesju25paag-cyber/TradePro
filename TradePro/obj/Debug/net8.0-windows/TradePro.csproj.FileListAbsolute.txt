@@ -408,3 +408,6 @@ C:\Users\danel\source\repos\TradePro\TradePro\bin\Debug\net8.0-windows\runtimes\
 C:\Users\danel\source\repos\TradePro\TradePro\bin\Debug\net8.0-windows\runtimes\win-x86\native\libstdc++-6.dll
 C:\Users\danel\source\repos\TradePro\TradePro\bin\Debug\net8.0-windows\runtimes\win-x86\native\libwinpthread-1.dll
 C:\Users\danel\source\repos\TradePro\TradePro\bin\Debug\net8.0-windows\runtimes\win-x86\native\qpdf.dll
+C:\Users\Danell\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.dll
+C:\Users\Danell\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\refint\TradePro.dll
+C:\Users\Danell\source\repos\TradePro\TradePro\obj\Debug\net8.0-windows\TradePro.pdb

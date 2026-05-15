@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.Extensions.Caching.Memory;
 using Zerbitzaria.Data;
 using Microsoft.Data.Sqlite;
@@ -16,7 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
 
 // Add services
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=zerbitzaria.db"));
+var dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TradePro");
+Directory.CreateDirectory(dataDir);
+var dbPath = Path.Combine(dataDir, "zerbitzaria.db");
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddEndpointsApiExplorer();
 // Add SignalR with MessagePack for compact payloads
 builder.Services.AddSignalR().AddMessagePackProtocol();

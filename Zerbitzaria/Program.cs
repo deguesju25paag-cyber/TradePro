@@ -27,6 +27,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<Zerbitzaria.Services.MarketCache>();
 builder.Services.AddHostedService<Zerbitzaria.Services.PriceUpdaterService>();
 
+builder.Services.AddScoped<Zerbitzaria.Services.IAuthService, Zerbitzaria.Services.AuthService>();
+builder.Services.AddScoped<Zerbitzaria.Services.LoginHandler>();
+
 // Add minimal TCP server hosted service for simple DB queries from desktop client
 builder.Services.AddHostedService<Zerbitzaria.Services.TcpServerHostedService>();
 
@@ -54,8 +57,12 @@ async Task ApplyMigrationsAndSeedAsync()
     {
         if (!d.Users.Any())
         {
-            var pwd = BCrypt.Net.BCrypt.HashPassword("admin");
-            d.Users.Add(new User { Username = "admin", PasswordHash = pwd, Balance = 100000m });
+            var adminPwd = BCrypt.Net.BCrypt.HashPassword("admin1234");
+            var userPwd = BCrypt.Net.BCrypt.HashPassword("1234");
+            d.Users.AddRange(
+                new User { Username = "admin", PasswordHash = adminPwd, Balance = 100000m },
+                new User { Username = "user", PasswordHash = userPwd, Balance = 5000m }
+            );
             d.SaveChanges();
         }
 
@@ -86,13 +93,11 @@ catch (Exception ex)
 Console.WriteLine("Zerbitzaria martxan dago hemen: http://localhost:5000");
 
 // Login endpoint - return DTO
-app.MapPost("/api/login", async (ApplicationDbContext db, UserDto dto) =>
+app.MapPost("/api/login", async (Zerbitzaria.Services.LoginHandler handler, UserDto dto) =>
 {
-    var user = await db.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
-    if (user == null) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Erabiltzailea edo pasahitza okerra"));
-    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash)) return Results.BadRequest(new ErrorResponseDto("invalid_credentials", "Erabiltzailea edo pasahitza okerra"));
-    var resp = new LoginResponseDto(user.Username, user.Balance, user.Id);
-    return Results.Ok(resp);
+    var result = await handler.HandleAsync(dto.Username, dto.Password);
+    if (result.Error != null) return Results.BadRequest(result.Error);
+    return Results.Ok(result.Response);
 });
 
 // Register endpoint - return DTO

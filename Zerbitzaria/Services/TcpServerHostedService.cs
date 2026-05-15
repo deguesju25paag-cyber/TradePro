@@ -200,35 +200,10 @@ namespace Zerbitzaria.Services
                     }
                     catch { }
 
-                    if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-                    {
-                        reply = new ErrorResponseDto("invalid_request", "Username and password required");
-                    }
-                    else
-                    {
-                        try
-                        {
-                            using var scope = _scopeFactory.CreateScope();
-                            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            var user = await db.Users.SingleOrDefaultAsync(u => u.Username == username, cancellationToken).ConfigureAwait(false);
-                            if (user == null)
-                            {
-                                reply = new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos");
-                            }
-                            else if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                            {
-                                reply = new ErrorResponseDto("invalid_credentials", "Usuario o contraseña incorrectos");
-                            }
-                            else
-                            {
-                                reply = new LoginResponseDto(user.Username, user.Balance, user.Id);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            reply = new ErrorResponseDto("db_error", ex.Message);
-                        }
-                    }
+                    using var scope = _scopeFactory.CreateScope();
+                    var handler = scope.ServiceProvider.GetRequiredService<LoginHandler>();
+                    var result = await handler.HandleAsync(username, password).ConfigureAwait(false);
+                    reply = result.Error != null ? result.Error : result.Response;
                 }
                 else if (string.Equals(action, "register", StringComparison.OrdinalIgnoreCase))
                 {

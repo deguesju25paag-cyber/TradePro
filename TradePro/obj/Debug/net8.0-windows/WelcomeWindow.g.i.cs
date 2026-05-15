@@ -69,7 +69,7 @@ namespace TradePro {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/TradePro;component/welcomewindow.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/TradePro;V1.0.0.0;component/welcomewindow.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\WelcomeWindow.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

@@ -16,8 +16,12 @@ namespace Zerbitzaria.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            var pwd = BCrypt.Net.BCrypt.HashPassword("admin");
-            modelBuilder.Entity<User>().HasData(new User { Id = 1, Username = "admin", PasswordHash = pwd, Balance = 100000m });
+            var adminPwd = BCrypt.Net.BCrypt.HashPassword("admin1234");
+            var userPwd = BCrypt.Net.BCrypt.HashPassword("1234");
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, Username = "admin", PasswordHash = adminPwd, Balance = 100000m },
+                new User { Id = 2, Username = "user", PasswordHash = userPwd, Balance = 5000m }
+            );
 
             modelBuilder.Entity<Market>().HasData(
                 new Market { Id = 1, Symbol = "BTC", Price = 42123.45m, Change = 2.1, IsUp = true },

@@ -3343,23 +3343,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\danel\\.nuget\\packages\\": {},
+    "C:\\Users\\Danell\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
+      "projectUniqueName": "C:\\Users\\Danell\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
       "projectName": "TradePro",
-      "projectPath": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
-      "packagesPath": "C:\\Users\\danel\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\danel\\source\\repos\\TradePro\\TradePro\\obj\\",
+      "projectPath": "C:\\Users\\Danell\\source\\repos\\TradePro\\TradePro\\TradePro.csproj",
+      "packagesPath": "C:\\Users\\Danell\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Danell\\source\\repos\\TradePro\\TradePro\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\danel\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Danell\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -3438,6 +3438,24 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.24, 8.0.24]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "version": "[8.0.24, 8.0.24]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.24, 8.0.24]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[8.0.24, 8.0.24]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"

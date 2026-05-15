@@ -16,15 +16,13 @@ namespace TradePro.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Seed an initial admin user (password 'admin' hashed) - for dev only
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword("admin");
-            modelBuilder.Entity<User>().HasData(new User
-            {
-                Id = 1,
-                Username = "admin",
-                PasswordHash = passwordHash,
-                Balance = 100000m
-            });
+            // Seed initial users for login tests (admin/user)
+            var adminHash = BCrypt.Net.BCrypt.HashPassword("admin1234");
+            var userHash = BCrypt.Net.BCrypt.HashPassword("1234");
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, Username = "admin", PasswordHash = adminHash, Balance = 100000m },
+                new User { Id = 2, Username = "user", PasswordHash = userHash, Balance = 5000m }
+            );
 
             // Seed markets
             modelBuilder.Entity<Market>().HasData(

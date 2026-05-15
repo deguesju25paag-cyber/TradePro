@@ -12,7 +12,7 @@ using System.Net.Security;
 
 namespace TradePro.Services
 {
-    public record LoginResponseDto(string Username, decimal Balance, int UserId);
+    public record LoginResponseDto(string Username, decimal Balance, int UserId, bool IsAdmin);
     public record RegisterResponseDto(string Message);
     public record ErrorResponseDto(string Error, string Message);
     public record MarketDto(string Symbol, decimal Price, double Change, bool IsUp);
